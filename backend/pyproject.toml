@@ -5,7 +5,19 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.140.7",
+    "asyncpg>=0.31.0",
+    "fastapi>=0.140.13",
+    "passlib>=1.7.4",
     "pydantic-settings>=2.14.2",
+    "pydantic[email]>=2.13.4",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "python-jose[cryptography]>=3.5.0",
+    "sqlalchemy>=2.0.51",
     "uvicorn>=0.51.0",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+
