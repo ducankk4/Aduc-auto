@@ -11,6 +11,18 @@ from app.core.database import Base
 
 logger = logging.getLogger(__name__)
 
+# Keys containing sensitive data that should be redacted from audit payloads
+SENSITIVE_KEYS = {
+    "password",
+    "password_hash",
+    "token",
+    "access_token",
+    "refresh_token",
+    "secret",
+    "secret_key",
+    "vnpay_hash_secret",
+}
+
 
 class AuditLogModel(Base):
     """SQLAlchemy ORM Model representing system audit log entries.
@@ -30,7 +42,31 @@ class AuditLogModel(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
-async def log_audit_event(
+def _sanitize_payload(payload: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Sanitize payload by masking sensitive fields like passwords and tokens.
+
+    Args:
+        payload (Optional[Dict[str, Any]]): Raw payload dictionary.
+
+    Returns:
+        Optional[Dict[str, Any]]: Redacted payload dictionary.
+    """
+    if not payload or not isinstance(payload, dict):
+        return payload
+
+    clean_payload = {}
+    for key, value in payload.items():
+        if key.lower() in SENSITIVE_KEYS:
+            clean_payload[key] = "[REDACTED]"
+        elif isinstance(value, dict):
+            clean_payload[key] = _sanitize_payload(value)
+        else:
+            clean_payload[key] = value
+
+    return clean_payload
+
+
+async def log(
     session: AsyncSession,
     user_id: Optional[UUID],
     action: str,
@@ -51,18 +87,23 @@ async def log_audit_event(
         action (str): Event identifier string (e.g. 'order.status_changed', 'user.login').
         resource (str): Target resource domain name (e.g. 'orders', 'users').
         resource_id (Optional[UUID]): Target entity primary key UUID.
-        payload (Optional[Dict[str, Any]]): Contextual metadata or payload payload.
+        payload (Optional[Dict[str, Any]]): Contextual metadata or request payload.
         ip_address (Optional[str]): Client IP address extracted from the HTTP request.
     """
     try:
+        sanitized_payload = _sanitize_payload(payload)
         audit_entry = AuditLogModel(
             user_id=user_id,
             action=action,
             resource=resource,
             resource_id=resource_id,
-            payload=payload,
+            payload=sanitized_payload,
             ip_address=ip_address,
         )
         session.add(audit_entry)
     except Exception as err:
         logger.error(f"Failed to record audit log event [{action}] on [{resource}]: {err}")
+
+
+# Maintain alias for backward compatibility
+log_audit_event = log

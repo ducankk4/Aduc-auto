@@ -44,3 +44,10 @@ class ValidationError(AppError):
 
     def __init__(self, detail: str = "Dữ liệu đầu vào không hợp lệ"):
         super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail, code="VALIDATION_ERROR")
+
+
+class RateLimitError(AppError):
+    """429 Rate Limit Exceeded Error."""
+
+    def __init__(self, detail: str = "Gửi quá nhiều yêu cầu. Vui lòng thử lại sau ít phút."):
+        super().__init__(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=detail, code="RATE_LIMIT_EXCEEDED")

@@ -8,6 +8,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.modules.users.api import admin_users_router, auth_router
+from app.modules.catalog.api import catalog_router
+from app.modules.leads.api import leads_router
+from app.modules.orders.api import orders_router, admin_orders_router
+from app.modules.payments.api import payments_router
 
 
 @asynccontextmanager
@@ -37,6 +41,11 @@ def create_app() -> FastAPI:
     # Register V1 Routers
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(admin_users_router, prefix="/api/v1")
+    app.include_router(catalog_router, prefix="/api/v1")
+    app.include_router(leads_router, prefix="/api/v1")
+    app.include_router(orders_router, prefix="/api/v1")
+    app.include_router(admin_orders_router, prefix="/api/v1")
+    app.include_router(payments_router, prefix="/api/v1")
 
     @app.get("/health", tags=["Health"])
     async def health_check():
