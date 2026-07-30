@@ -78,7 +78,6 @@ graph TD
 | | `permissions` | id, resource, action — UNIQUE(resource, action) |
 | | `role_permissions` | role_id FK, permission_id FK |
 | | `departments` | id, name, parent_id (self-ref) |
-| | `user_departments` | user_id FK, department_id FK |
 | **catalog** | `vehicles` | id, name, slug (UK), base_price, deposit_amount, is_active |
 | | `vehicle_variants` | id, vehicle_id FK, name, price, deposit_amount, spec_summary JSONB |
 | | `vehicle_colors` | id, vehicle_id FK, name, hex_code, image_url, price_extra |

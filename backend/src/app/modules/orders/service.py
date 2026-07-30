@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.audit import log as audit_log
 from app.core.exceptions import NotFoundError, ConflictError, ForbiddenError, ValidationError
 from app.modules.catalog.service import CatalogService
+from app.modules.users.service import UserService
 from app.modules.orders.constants import OrderStatus, VALID_TRANSITIONS
 from app.modules.orders.model import OrderModel, OrderStatusHistory
 from app.modules.orders.repository import OrderRepository
@@ -47,13 +48,17 @@ class OrderService:
             OrderModel: Created order ORM entity.
 
         Raises:
-            NotFoundError: If variant or color does not exist.
+            NotFoundError: If user_id, variant, or color does not exist.
             ValidationError: If color does not belong to the variant's vehicle.
         """
-        # 1. Retrieve variant via catalog.service
+        # 1. Validate user existence if registered user (inter-module call to users/service)
+        if user_id is not None:
+            await UserService.get_user_profile(session, user_id)
+
+        # 2. Retrieve variant via catalog.service
         variant = await CatalogService.get_variant(session, variant_id)
 
-        # 2. Retrieve color via catalog.service & validate matching vehicle
+        # 3. Retrieve color via catalog.service & validate matching vehicle
         color = await CatalogService.get_color(session, color_id)
         if color.vehicle_id != variant.vehicle_id:
             raise ValidationError("Màu sắc được chọn không thuộc dòng xe của phiên bản này")
@@ -61,11 +66,11 @@ class OrderService:
         # Standard Deposit Amount (50,000,000 VND)
         deposit_amount = Decimal("50000000.00")
 
-        # 3. Generate unique business order code
+        # 4. Generate unique business order code
         date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
         order_code = f"ORD-{date_str}-{uuid4().hex[:6].upper()}"
 
-        # 4. Insert OrderModel with status="pending"
+        # 5. Insert OrderModel with status="pending"
         order = OrderModel(
             order_code=order_code,
             user_id=user_id,
@@ -80,7 +85,7 @@ class OrderService:
         )
         created_order = await OrderRepository.create_order(session, order)
 
-        # 5. Insert initial OrderStatusHistory entry
+        # 6. Insert initial OrderStatusHistory entry
         history_entry = OrderStatusHistory(
             order_id=created_order.id,
             from_status=None,
@@ -90,7 +95,7 @@ class OrderService:
         )
         await OrderRepository.create_status_history(session, history_entry)
 
-        # 6. Audit log order creation
+        # 7. Audit log order creation
         await audit_log(
             session=session,
             user_id=user_id,
@@ -191,6 +196,10 @@ class OrderService:
             NotFoundError: If order is not found.
             ConflictError: If state transition is invalid according to state machine rules.
         """
+        # Validate changed_by user existence if provided (inter-module call to users/service)
+        if changed_by is not None:
+            await UserService.get_user_profile(session, changed_by)
+
         order = await OrderRepository.find_by_id(session, order_id)
         if not order:
             raise NotFoundError(f"Không tìm thấy đơn hàng với ID: '{order_id}'")
@@ -204,11 +213,11 @@ class OrderService:
                 f"Các trạng thái cho phép: {allowed_transitions or 'Không có (Trạng thái kết thúc)'}"
             )
 
-        # 2. Update order status
+        # Update order status
         order.status = new_status
         await session.flush()
 
-        # 3. Record status history entry
+        # Record status history entry
         history_entry = OrderStatusHistory(
             order_id=order.id,
             from_status=current_status,
@@ -218,7 +227,7 @@ class OrderService:
         )
         await OrderRepository.create_status_history(session, history_entry)
 
-        # 4. Audit log status update
+        # Audit log status update
         await audit_log(
             session=session,
             user_id=changed_by,
