@@ -40,9 +40,13 @@ class VehicleModel(Base):
         nullable=False,
     )
 
-    variants = relationship("VariantModel", back_populates="vehicle", cascade="all, delete-orphan", lazy="selectin")
-    colors = relationship("ColorModel", back_populates="vehicle", cascade="all, delete-orphan", lazy="selectin")
-    options = relationship("OptionModel", back_populates="vehicle", cascade="all, delete-orphan")
+    # lazy="raise" ensures accidental out-of-session attribute access raises immediately
+    # instead of silently failing or causing MissingGreenlet errors.
+    # All eager loading is handled explicitly via selectinload() in the repository layer.
+    variants = relationship("VariantModel", back_populates="vehicle", cascade="all, delete-orphan", lazy="raise")
+    colors = relationship("ColorModel", back_populates="vehicle", cascade="all, delete-orphan", lazy="raise")
+    options = relationship("OptionModel", back_populates="vehicle", cascade="all, delete-orphan", lazy="raise")
+
 
 
 class VariantModel(Base):

@@ -12,6 +12,10 @@ from app.modules.catalog.schema import (
     VehicleCreateSchema,
     VehicleUpdateSchema,
     VehicleResponseSchema,
+    VariantCreateSchema,
+    VariantResponseSchema,
+    ColorCreateSchema,
+    ColorResponseSchema,
 )
 from app.modules.catalog.service import CatalogService
 
@@ -85,3 +89,87 @@ async def admin_update_vehicle(
     )
     data = VehicleResponseSchema.model_validate(vehicle).model_dump(mode="json")
     return success(data=data)
+
+
+@catalog_router.post(
+    "/vehicles/{vehicle_id}/variants",
+    dependencies=[Depends(check_permission("catalog", "write"))],
+)
+async def admin_add_variant(
+    vehicle_id: UUID,
+    payload: VariantCreateSchema,
+    current_user: CurrentUser,
+    session: DBSession,
+):
+    """Admin endpoint to add a new variant to an existing vehicle."""
+    user_id = UUID(current_user["sub"])
+    variant = await CatalogService.admin_add_variant(
+        session=session,
+        user_id=user_id,
+        vehicle_id=vehicle_id,
+        **payload.model_dump(),
+    )
+    data = VariantResponseSchema.model_validate(variant).model_dump(mode="json")
+    return success(data=data, status_code=201)
+
+
+@catalog_router.post(
+    "/vehicles/{vehicle_id}/colors",
+    dependencies=[Depends(check_permission("catalog", "write"))],
+)
+async def admin_add_color(
+    vehicle_id: UUID,
+    payload: ColorCreateSchema,
+    current_user: CurrentUser,
+    session: DBSession,
+):
+    """Admin endpoint to add a new color option to an existing vehicle."""
+    user_id = UUID(current_user["sub"])
+    color = await CatalogService.admin_add_color(
+        session=session,
+        user_id=user_id,
+        vehicle_id=vehicle_id,
+        **payload.model_dump(),
+    )
+    data = ColorResponseSchema.model_validate(color).model_dump(mode="json")
+    return success(data=data, status_code=201)
+
+
+@catalog_router.delete(
+    "/variants/{variant_id}",
+    dependencies=[Depends(check_permission("catalog", "write"))],
+)
+async def admin_delete_variant(
+    variant_id: UUID,
+    current_user: CurrentUser,
+    session: DBSession,
+):
+    """Admin endpoint to delete a vehicle variant."""
+    user_id = UUID(current_user["sub"])
+    await CatalogService.admin_delete_variant(
+        session=session,
+        user_id=user_id,
+        variant_id=variant_id,
+    )
+    return success(data={"id": str(variant_id), "deleted": True})
+
+
+@catalog_router.delete(
+    "/colors/{color_id}",
+    dependencies=[Depends(check_permission("catalog", "write"))],
+)
+async def admin_delete_color(
+    color_id: UUID,
+    current_user: CurrentUser,
+    session: DBSession,
+):
+    """Admin endpoint to delete a vehicle color option."""
+    user_id = UUID(current_user["sub"])
+    await CatalogService.admin_delete_color(
+        session=session,
+        user_id=user_id,
+        color_id=color_id,
+    )
+    return success(data={"id": str(color_id), "deleted": True})
+
+

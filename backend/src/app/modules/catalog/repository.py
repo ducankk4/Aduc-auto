@@ -5,9 +5,10 @@ Executes raw SQLAlchemy 2.0 queries for vehicles, variants, colors, and options.
 
 from typing import Optional, List, Tuple
 from uuid import UUID
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
 
 from app.modules.catalog.model import (
     VehicleModel,
@@ -50,6 +51,7 @@ class CatalogRepository:
             .order_by(VehicleModel.created_at.desc())
             .offset(offset)
             .limit(limit)
+            .execution_options(populate_existing=True)
         )
         result = await session.execute(stmt)
         return list(result.scalars().all()), total
@@ -72,6 +74,7 @@ class CatalogRepository:
                 selectinload(VehicleModel.variants),
                 selectinload(VehicleModel.colors),
             )
+            .execution_options(populate_existing=True)
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
@@ -94,6 +97,7 @@ class CatalogRepository:
                 selectinload(VehicleModel.variants),
                 selectinload(VehicleModel.colors),
             )
+            .execution_options(populate_existing=True)
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
@@ -109,7 +113,11 @@ class CatalogRepository:
         Returns:
             Optional[VariantModel]: Variant ORM entity or None.
         """
-        stmt = select(VariantModel).where(VariantModel.id == variant_id)
+        stmt = (
+            select(VariantModel)
+            .where(VariantModel.id == variant_id)
+            .execution_options(populate_existing=True)
+        )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -124,21 +132,69 @@ class CatalogRepository:
         Returns:
             Optional[ColorModel]: Color ORM entity or None.
         """
-        stmt = select(ColorModel).where(ColorModel.id == color_id)
+        stmt = (
+            select(ColorModel)
+            .where(ColorModel.id == color_id)
+            .execution_options(populate_existing=True)
+        )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
+
     @staticmethod
     async def create_vehicle(session: AsyncSession, vehicle: VehicleModel) -> VehicleModel:
-        """Persist a new vehicle entity.
+        """Persist a new vehicle entity and return it with relationships eagerly loaded.
+
+        Flushes the entity to obtain a primary key, then re-fetches the full object
+        (with variants and colors) so callers never encounter lazy="raise" errors.
 
         Args:
             session (AsyncSession): Active database session.
             vehicle (VehicleModel): Unsaved vehicle ORM entity.
 
         Returns:
-            VehicleModel: Saved vehicle ORM entity.
+            VehicleModel: Saved vehicle entity with variants and colors loaded.
         """
         session.add(vehicle)
         await session.flush()
-        return vehicle
+
+        # Re-fetch with relationships so the returned object is fully populated.
+        stmt = (
+            select(VehicleModel)
+            .where(VehicleModel.id == vehicle.id)
+            .options(
+                selectinload(VehicleModel.variants),
+                selectinload(VehicleModel.colors),
+            )
+            .execution_options(populate_existing=True)
+        )
+        result = await session.execute(stmt)
+        return result.scalar_one()
+
+    @staticmethod
+    async def create_variant(session: AsyncSession, variant: VariantModel) -> VariantModel:
+        """Persist a new variant entity."""
+        session.add(variant)
+        await session.flush()
+        return variant
+
+    @staticmethod
+    async def create_color(session: AsyncSession, color: ColorModel) -> ColorModel:
+        """Persist a new color entity."""
+        session.add(color)
+        await session.flush()
+        return color
+
+    @staticmethod
+    async def delete_variant(session: AsyncSession, variant: VariantModel) -> None:
+        """Delete a variant entity."""
+        await session.delete(variant)
+        await session.flush()
+
+    @staticmethod
+    async def delete_color(session: AsyncSession, color: ColorModel) -> None:
+        """Delete a color entity."""
+        await session.delete(color)
+        await session.flush()
+
+

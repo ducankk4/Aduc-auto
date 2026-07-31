@@ -1,15 +1,15 @@
 """Cross-cutting Audit Logging Utility for System & Admin Actions."""
 
-import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from uuid import UUID, uuid4
+
+from loguru import logger
 from sqlalchemy import Column, String, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.database import Base
 
-logger = logging.getLogger(__name__)
+from app.core.database import Base
 
 # Keys containing sensitive data that should be redacted from audit payloads
 SENSITIVE_KEYS = {

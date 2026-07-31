@@ -40,7 +40,11 @@ class LeadRepository:
         Returns:
             Optional[LeadModel]: Lead ORM entity or None.
         """
-        stmt = select(LeadModel).where(LeadModel.id == lead_id)
+        stmt = (
+            select(LeadModel)
+            .where(LeadModel.id == lead_id)
+            .execution_options(populate_existing=True)
+        )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -64,7 +68,7 @@ class LeadRepository:
         """
         offset = (page - 1) * limit
         count_stmt = select(func.count(LeadModel.id))
-        stmt = select(LeadModel)
+        stmt = select(LeadModel).execution_options(populate_existing=True)
 
         if status_filter:
             count_stmt = count_stmt.where(LeadModel.status == status_filter)
@@ -75,3 +79,4 @@ class LeadRepository:
         stmt = stmt.order_by(LeadModel.created_at.desc()).offset(offset).limit(limit)
         result = await session.execute(stmt)
         return list(result.scalars().all()), total
+

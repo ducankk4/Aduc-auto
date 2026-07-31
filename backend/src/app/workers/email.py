@@ -1,10 +1,10 @@
 """Email Notification Worker for Background Tasks."""
 
-import logging
+from loguru import logger
 from uuid import UUID
+
 from app.core.database import AsyncSessionLocal
 
-logger = logging.getLogger(__name__)
 
 
 async def send_order_confirmation(order_id: UUID) -> None:

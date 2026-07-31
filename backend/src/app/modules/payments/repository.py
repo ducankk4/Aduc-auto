@@ -40,7 +40,11 @@ class PaymentRepository:
         Returns:
             Optional[PaymentModel]: Payment ORM entity or None.
         """
-        stmt = select(PaymentModel).where(PaymentModel.id == payment_id)
+        stmt = (
+            select(PaymentModel)
+            .where(PaymentModel.id == payment_id)
+            .execution_options(populate_existing=True)
+        )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -59,6 +63,7 @@ class PaymentRepository:
             select(PaymentModel)
             .where(PaymentModel.order_id == order_id)
             .order_by(PaymentModel.created_at.desc())
+            .execution_options(populate_existing=True)
         )
         result = await session.execute(stmt)
         return result.scalars().first()
@@ -76,9 +81,14 @@ class PaymentRepository:
         Returns:
             Optional[PaymentModel]: Payment ORM entity or None.
         """
-        stmt = select(PaymentModel).where(
-            PaymentModel.transaction_code == transaction_code,
-            PaymentModel.status == "success",
+        stmt = (
+            select(PaymentModel)
+            .where(
+                PaymentModel.transaction_code == transaction_code,
+                PaymentModel.status == "success",
+            )
+            .execution_options(populate_existing=True)
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
+

@@ -1,10 +1,10 @@
 # AI Coding Guidelines & Architectural Standards — Aduc Auto Platform (`agent.md`)
 
-> **Goal**: This document defines the mandatory guidelines, conventions, and architectural constraints for any developer or AI Agent working on the **Aduc Auto** codebase. Adhering to these rules ensures seamless, consistent, and maintainable development ("vibe coding" with high precision).
+> **Goal**: This document defines the mandatory guidelines, conventions, and architectural constraints for any developer or AI Agent working on the **Aduc Auto** codebase. Adhering to these rules ensures seamless, consistent, and maintainable development.
 
 ---
 
-## 🚨 MANDATORY CORE RULES (NON-NEGOTIABLE)
+## MANDATORY CORE RULES (NON-NEGOTIABLE)
 
 ### 1. English Docstrings for All Functions & Classes
 - **Rule**: Every single module, class, method, and function MUST be documented with clear, professional **English docstrings** following Google/Sphinx style.
@@ -74,7 +74,7 @@ variant = await CatalogService.get_variant(session, variant_id)
 
 ---
 
-## 🏗️ Code Structure & Layering (3-Layer Pattern inside Modules)
+## Code Structure & Layering (3-Layer Pattern inside Modules)
 
 Each business module under `src/app/modules/<module_name>/` must follow the 3-Layer Architecture:
 
@@ -96,21 +96,23 @@ src/app/modules/<module_name>/
 
 ---
 
-## 🐍 Python Coding Standards & Conventions
+## Code Quality & Clean Code
 
 ### 1. Naming Conventions
-- **Files & Modules**: `snake_case.py` (e.g., `user_repository.py`)
-- **Classes**: `PascalCase` (e.g., `OrderService`, `UserModel`, `PaymentGateway`)
-- **Functions, Methods & Variables**: `snake_case` (e.g., `create_deposit_order`, `is_active`)
-- **Constants & Enums**: `UPPER_SNAKE_CASE` (e.g., `DEFAULT_PAGE_SIZE`, `MAX_LOGIN_ATTEMPTS`)
-- **Private Helper Functions**: Preceded by an underscore `_snake_case` (e.g., `_verify_vnpay_signature`)
+
+| Target | Convention | Example |
+| :--- | :--- | :--- |
+| Files & modules | `snake_case` | `user_repository.py` |
+| Classes | `PascalCase` | `OrderService`, `UserModel` |
+| Functions, methods, variables | `snake_case` | `create_deposit_order`, `is_active` |
+| Constants & Enums | `UPPER_SNAKE_CASE` | `DEFAULT_PAGE_SIZE`, `MAX_LOGIN_ATTEMPTS` |
+| Private helpers | `_snake_case` | `_verify_vnpay_signature` |
 
 ### 2. Type Hinting
-- **Strict Typing**: All function parameters and return values **MUST** be explicitly type-hinted.
-- Use Python standard collection types (`list`, `dict`, `set`, `tuple`) and `typing` constructs (`Optional`, `Union`, `AsyncGenerator`).
+
+All function parameters and return values must be explicitly type-hinted. No implicit `Any`.
 
 ```python
-# ✅ REQUIRED
 async def find_users_by_role(
     session: AsyncSession,
     role_id: UUID,
@@ -121,15 +123,71 @@ async def find_users_by_role(
     ...
 ```
 
-### 3. Imports Formatting
-Imports must be grouped in the following order (separated by a blank line):
-1. Python standard library imports (`datetime`, `uuid`, `typing`).
-2. Third-party library imports (`fastapi`, `sqlalchemy`, `pydantic`, `jose`).
-3. Internal application imports using explicit paths from `src.app...` (`src.app.core...`, `src.app.modules...`).
+### 3. Import Order
+
+Group imports in the following order, separated by a blank line:
+
+1. Standard library (`datetime`, `uuid`, `typing`)
+2. Third-party (`fastapi`, `sqlalchemy`, `pydantic`, `loguru`)
+3. Internal application (`app.config`, `app.core.*`, `app.modules.*`)
+
+### 4. Function & Method Design
+
+- **Single Responsibility**: Each function does exactly one thing. If a function needs a comment to describe what it does, split it.
+- **Short functions**: Aim for under 30 lines per function body. Extract named helpers for complex logic.
+- **No dead code**: Remove unused imports, variables, and commented-out blocks before committing.
+- **No flag arguments**: Avoid boolean parameters that switch behavior (e.g., `def process(order, send_email=True)`). Split into two separate functions.
+- **Early returns**: Prefer guard clauses over deeply nested `if/else` trees.
+
+```python
+# Avoid
+async def get_order(order_id, raise_if_missing=True):
+    order = await repo.find(order_id)
+    if raise_if_missing:
+        if not order:
+            raise NotFoundError()
+    return order
+
+# Prefer
+async def get_order(order_id: UUID) -> OrderModel:
+    order = await repo.find(order_id)
+    if not order:
+        raise NotFoundError()
+    return order
+
+async def find_order(order_id: UUID) -> OrderModel | None:
+    return await repo.find(order_id)
+```
+
+### 5. No Magic Values
+
+No inline string literals, numeric thresholds, or status codes in logic. All constants belong in `constants.py` or `config.py`.
+
+```python
+# Wrong
+if order.status == "pending" and amount > 500_000_000:
+    ...
+
+# Correct
+if order.status == OrderStatus.PENDING and amount > settings.MAX_DEPOSIT_AMOUNT:
+    ...
+```
+
+### 6. Logging
+
+Use `from loguru import logger` everywhere. Never use `print()` for runtime output.
+
+```python
+from loguru import logger
+
+logger.info("Order confirmed: order_id={}, customer={}", order.id, order.customer_name)
+logger.warning("Payment webhook duplicate: vnp_TxnRef={}", txn_ref)
+logger.error("Email dispatch failed: order_id={}, error={}", order_id, err)
+```
 
 ---
 
-## 🛠️ Error Handling & Standard Responses
+## Error Handling & Standard Responses
 
 ### 1. Standard Error Handling
 - Do not raise raw `HTTPException` or generic `Exception` inside domain logic.
@@ -157,7 +215,7 @@ async def list_vehicles(session: AsyncSession = Depends(get_db)):
 
 ---
 
-## 🗄️ Database & Migration Guidelines
+## Database & Migration Guidelines
 
 1. **SQLAlchemy 2.0 Async Style**: Always use `select()`, `update()`, `delete()` with `await session.execute()` and `.scalars()`. Avoid legacy 1.x `session.query()` syntax.
 2. **Alembic Migrations**: Any modification to `model.py` files MUST be followed by generating an Alembic migration script (`uv run alembic revision --autogenerate -m "description"`).
@@ -165,7 +223,7 @@ async def list_vehicles(session: AsyncSession = Depends(get_db)):
 
 ---
 
-## 🧪 Testing Standards
+## Testing Standards
 
 - **Unit Tests (`tests/unit/`)**: Test business services in isolation. Mock external dependencies (e.g., payment gateways, email senders).
 - **Integration Tests (`tests/integration/`)**: Test end-to-end API endpoints against a test PostgreSQL instance. Verify status codes and exact response structure.
@@ -173,7 +231,7 @@ async def list_vehicles(session: AsyncSession = Depends(get_db)):
 
 ---
 
-## 💡 Summary Checklist for Developers & AI Agents
+## Summary Checklist for Developers & AI Agents
 
 Before submitting or generating any code:
 - [ ] Are all classes, methods, and functions documented with clear **English docstrings**?

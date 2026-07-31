@@ -62,6 +62,7 @@ class OrderRepository:
             select(OrderModel)
             .where(OrderModel.id == order_id)
             .options(selectinload(OrderModel.history))
+            .execution_options(populate_existing=True)
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
@@ -81,6 +82,7 @@ class OrderRepository:
             select(OrderModel)
             .where(OrderModel.order_code == order_code)
             .options(selectinload(OrderModel.history))
+            .execution_options(populate_existing=True)
         )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
@@ -114,6 +116,7 @@ class OrderRepository:
             .order_by(OrderModel.created_at.desc())
             .offset(offset)
             .limit(limit)
+            .execution_options(populate_existing=True)
         )
         result = await session.execute(stmt)
         return list(result.scalars().all()), total
@@ -138,7 +141,11 @@ class OrderRepository:
         """
         offset = (page - 1) * limit
         count_stmt = select(func.count(OrderModel.id))
-        stmt = select(OrderModel).options(selectinload(OrderModel.history))
+        stmt = (
+            select(OrderModel)
+            .options(selectinload(OrderModel.history))
+            .execution_options(populate_existing=True)
+        )
 
         if status_filter:
             count_stmt = count_stmt.where(OrderModel.status == status_filter)
@@ -149,3 +156,4 @@ class OrderRepository:
         stmt = stmt.order_by(OrderModel.created_at.desc()).offset(offset).limit(limit)
         result = await session.execute(stmt)
         return list(result.scalars().all()), total
+

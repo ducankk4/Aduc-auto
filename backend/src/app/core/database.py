@@ -16,9 +16,10 @@ class Base(DeclarativeBase):
 
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.APP_DEBUG,
+    echo=False,  # SQL echo is intentionally disabled — too noisy for routine logs.
     future=True,
 )
+
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,

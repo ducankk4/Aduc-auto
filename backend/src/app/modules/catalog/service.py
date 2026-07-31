@@ -189,6 +189,9 @@ class CatalogService:
 
         await session.flush()
 
+        # Re-fetch so the returned vehicle has variants and colors eagerly loaded.
+        vehicle = await CatalogService.get_by_id(session, vehicle_id)
+
         # Audit log update event
         await audit_log(
             session=session,
@@ -200,3 +203,87 @@ class CatalogService:
         )
 
         return vehicle
+
+    @staticmethod
+    async def admin_add_variant(
+        session: AsyncSession,
+        user_id: UUID,
+        vehicle_id: UUID,
+        **data: Any,
+    ) -> VariantModel:
+        """Admin operation to add a variant to an existing vehicle."""
+        vehicle = await CatalogService.get_by_id(session, vehicle_id)
+        variant = VariantModel(vehicle_id=vehicle.id, **data)
+        created_variant = await CatalogRepository.create_variant(session, variant)
+
+        await audit_log(
+            session=session,
+            user_id=user_id,
+            action="catalog.variant_created",
+            resource="catalog",
+            resource_id=created_variant.id,
+            payload={"name": created_variant.name, "sku": created_variant.sku, "vehicle_id": str(vehicle_id)},
+        )
+        return created_variant
+
+    @staticmethod
+    async def admin_add_color(
+        session: AsyncSession,
+        user_id: UUID,
+        vehicle_id: UUID,
+        **data: Any,
+    ) -> ColorModel:
+        """Admin operation to add a color option to an existing vehicle."""
+        vehicle = await CatalogService.get_by_id(session, vehicle_id)
+        color = ColorModel(vehicle_id=vehicle.id, **data)
+        created_color = await CatalogRepository.create_color(session, color)
+
+        await audit_log(
+            session=session,
+            user_id=user_id,
+            action="catalog.color_created",
+            resource="catalog",
+            resource_id=created_color.id,
+            payload={"name": created_color.name, "color_code": created_color.color_code, "vehicle_id": str(vehicle_id)},
+        )
+        return created_color
+
+    @staticmethod
+    async def admin_delete_variant(
+        session: AsyncSession,
+        user_id: UUID,
+        variant_id: UUID,
+    ) -> None:
+        """Admin operation to delete a variant by ID."""
+        variant = await CatalogService.get_variant(session, variant_id)
+        await CatalogRepository.delete_variant(session, variant)
+
+        await audit_log(
+            session=session,
+            user_id=user_id,
+            action="catalog.variant_deleted",
+            resource="catalog",
+            resource_id=variant_id,
+            payload={"name": variant.name, "sku": variant.sku},
+        )
+
+    @staticmethod
+    async def admin_delete_color(
+        session: AsyncSession,
+        user_id: UUID,
+        color_id: UUID,
+    ) -> None:
+        """Admin operation to delete a color option by ID."""
+        color = await CatalogService.get_color(session, color_id)
+        await CatalogRepository.delete_color(session, color)
+
+        await audit_log(
+            session=session,
+            user_id=user_id,
+            action="catalog.color_deleted",
+            resource="catalog",
+            resource_id=color_id,
+            payload={"name": color.name, "color_code": color.color_code},
+        )
+
+

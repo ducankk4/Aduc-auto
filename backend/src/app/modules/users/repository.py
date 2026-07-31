@@ -23,7 +23,11 @@ class UserRepository:
         Returns:
             Optional[UserModel]: Found user entity or None.
         """
-        stmt = select(UserModel).where(UserModel.email == email.strip().lower())
+        stmt = (
+            select(UserModel)
+            .where(UserModel.email == email.strip().lower())
+            .execution_options(populate_existing=True)
+        )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -38,7 +42,11 @@ class UserRepository:
         Returns:
             Optional[UserModel]: Found user entity or None.
         """
-        stmt = select(UserModel).where(UserModel.username == username.strip())
+        stmt = (
+            select(UserModel)
+            .where(UserModel.username == username.strip())
+            .execution_options(populate_existing=True)
+        )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -53,7 +61,11 @@ class UserRepository:
         Returns:
             Optional[UserModel]: Found user entity or None.
         """
-        stmt = select(UserModel).where(UserModel.id == user_id)
+        stmt = (
+            select(UserModel)
+            .where(UserModel.id == user_id)
+            .execution_options(populate_existing=True)
+        )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -83,7 +95,11 @@ class UserRepository:
         Returns:
             Optional[RoleModel]: Role entity or None.
         """
-        stmt = select(RoleModel).where(RoleModel.name == name.strip().lower())
+        stmt = (
+            select(RoleModel)
+            .where(RoleModel.name == name.strip().lower())
+            .execution_options(populate_existing=True)
+        )
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -123,7 +139,13 @@ class UserRepository:
         count_stmt = select(func.count(UserModel.id))
         total = (await session.execute(count_stmt)).scalar_one()
 
-        query_stmt = select(UserModel).order_by(UserModel.created_at.desc()).offset(offset).limit(limit)
+        query_stmt = (
+            select(UserModel)
+            .order_by(UserModel.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+            .execution_options(populate_existing=True)
+        )
         users = (await session.execute(query_stmt)).scalars().all()
         return list(users), total
 
@@ -137,7 +159,11 @@ class UserRepository:
         Returns:
             list[DepartmentModel]: List of all department entities.
         """
-        stmt = select(DepartmentModel).options(selectinload(DepartmentModel.children))
+        stmt = (
+            select(DepartmentModel)
+            .options(selectinload(DepartmentModel.children))
+            .execution_options(populate_existing=True)
+        )
         result = await session.execute(stmt)
         return list(result.scalars().all())
 
@@ -151,9 +177,14 @@ class UserRepository:
         Returns:
             list[RoleModel]: List of all system roles.
         """
-        stmt = select(RoleModel).options(selectinload(RoleModel.permissions))
+        stmt = (
+            select(RoleModel)
+            .options(selectinload(RoleModel.permissions))
+            .execution_options(populate_existing=True)
+        )
         result = await session.execute(stmt)
         return list(result.scalars().all())
+
 
     @staticmethod
     async def create_role(session: AsyncSession, role: RoleModel) -> RoleModel:
