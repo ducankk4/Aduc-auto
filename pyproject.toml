@@ -1,2 +1,5 @@
 [tool.uv.workspace]
-members = ["backend"]
+members = [
+    "backend",
+    "ai_service",
+]
