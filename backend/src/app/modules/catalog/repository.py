@@ -3,9 +3,10 @@
 Executes raw SQLAlchemy 2.0 queries for vehicles, variants, colors, and options.
 """
 
+from decimal import Decimal
 from typing import Optional, List, Tuple
 from uuid import UUID
-from sqlalchemy import select, func
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -140,7 +141,6 @@ class CatalogRepository:
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
 
-
     @staticmethod
     async def create_vehicle(session: AsyncSession, vehicle: VehicleModel) -> VehicleModel:
         """Persist a new vehicle entity and return it with relationships eagerly loaded.
@@ -196,5 +196,4 @@ class CatalogRepository:
         """Delete a color entity."""
         await session.delete(color)
         await session.flush()
-
 
