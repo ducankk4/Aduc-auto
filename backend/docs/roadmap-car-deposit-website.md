@@ -61,18 +61,8 @@ backend/
 │   │   │
 │   │   ├── payments/                     # VNPay/MoMo + webhook — phụ thuộc orders
 │   │   │   ├── api.py, service.py, repository.py, model.py, schema.py
-│   │   │
-│   │   └── ai_agent/                        # ★ CLIENT của các module trên, KHÔNG phải domain ngang hàng
-│   │       ├── conversation/                 # session hội thoại, lịch sử chat
-│   │       ├── rag/                           # embedding, retrieval, vector index (OpenSearch/bge-m3)
-│   │       ├── tools/                          # wrapper gọi catalog.service, orders.service, leads.service...
-│   │       └── agent.py                          # orchestration (LangGraph/ReAct loop)
-│   │
-│   ├── workers/                 # Background jobs (Celery/APScheduler) — gửi email/SMS, đồng bộ, retry webhook
-│   └── tests/
-│       ├── unit/                 # test Service layer từng module (mock Repository)
-│       └── integration/           # test Repository + API (DB test container)
-│
+│   │     
+│   │       
 ├── frontend/          # Next.js
 ├── infra/             # docker-compose, nginx, ci-cd
 └── docs/
@@ -87,8 +77,6 @@ users, catalog     →  module nền tảng, KHÔNG phụ thuộc module nghiệ
 leads               →  phụ thuộc catalog (biết khách quan tâm xe nào)
 orders                →  phụ thuộc catalog + users
 payments                →  phụ thuộc orders (không được ngược lại)
-ai_agent                   →  phụ thuộc TẤT CẢ (đóng vai trò client) — nhưng KHÔNG module nào
-                              được phép import ngược lại ai_agent
 ```
 
 **2 quy tắc code cứng phải tuân theo:**
