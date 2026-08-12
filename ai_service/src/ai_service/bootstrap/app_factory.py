@@ -30,12 +30,13 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         async with build_checkpointer(settings) as checkpointer:
-            app.state.container = build_container(settings, checkpointer)
+            app.state.container = await build_container(settings, checkpointer)
             logger.bind(app_env=settings.app_env).info("ai-service started")
             try:
                 yield
             finally:
                 await app.state.container.backend_client.aclose()
+                await app.state.container.retriever.aclose()
 
     app = FastAPI(title="Aduc Auto - ai-service", version="0.1.0", lifespan=lifespan)
 

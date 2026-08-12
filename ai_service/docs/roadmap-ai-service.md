@@ -314,7 +314,7 @@ Cần bổ sung:
 |---|---|
 | Chat model provider package | Không pre-lock ở đây — chọn/đổi theo provider dùng thực tế lúc code (infra `llm/factory.py` là nơi duy nhất biết provider cụ thể, xem `code-style.md` mục 6). Hiện đang dùng `langchain-groq`. |
 | `httpx` | Backend HTTP client |
-| `langgraph-checkpoint-postgres` (hoặc `-sqlite` cho dev) | Persist checkpoint — bản base `langgraph-checkpoint` đã có, chỉ là in-memory |
+| `langgraph-checkpoint-postgres` (hoặc `-sqlite` cho dev) | Persist checkpoint — bản base `langgraph-checkpoint` đã có |
 | Thư viện embedding + vector store | RAG (bge-m3 / pgvector client) |
 | `deepagents` *(tuỳ chọn)* | **Chưa cài.** LangChain 1.3.14 đã có sẵn `create_agent` + middleware `todo`, `human_in_the_loop`, `summarization`, `context_editing`, và subagent transformer — **đủ để dựng kiến trúc deepagent mà không cần package riêng**. Chỉ thêm `deepagents` nếu muốn preset dựng sẵn. |
 

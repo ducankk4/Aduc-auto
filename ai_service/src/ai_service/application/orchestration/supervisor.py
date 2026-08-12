@@ -1,9 +1,9 @@
 """Supervisor agent graph construction.
 
-Phase 0: a single agent with one read tool, no subagent delegation. LangChain
-1.3.14 ships no ready-made "agent as tool" transformer (verified against the
-installed package) — subagent wrapping in later phases will need a thin
-`@tool` wrapper around a nested `create_agent(..., name=...)` graph.
+Phase 1: the supervisor's `tools` are delegation tools only (e.g. the
+`catalog_advisor` wrapper in `orchestration/subagents/`) — it holds no
+business tool directly (roadmap 4.1). This function itself is agnostic to
+that distinction; it just compiles whatever tool list it is given.
 """
 
 from __future__ import annotations

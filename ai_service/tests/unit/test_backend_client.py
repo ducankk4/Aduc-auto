@@ -50,6 +50,59 @@ async def test_maps_unwrapped_detail_error_to_typed_exception():
     await http_client.aclose()
 
 
+async def test_get_vehicle_detail_parses_variants_and_colors():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "success": True,
+                "data": {
+                    "id": "00000000-0000-0000-0000-000000000001",
+                    "name": "VF8",
+                    "slug": "vf8",
+                    "category": "SUV",
+                    "description": "A mid-size electric SUV.",
+                    "base_price": "1000000000.00",
+                    "is_active": True,
+                    "created_at": "2026-01-01T00:00:00",
+                    "variants": [
+                        {
+                            "id": "00000000-0000-0000-0000-000000000002",
+                            "vehicle_id": "00000000-0000-0000-0000-000000000001",
+                            "name": "Plus",
+                            "sku": "VF8-PLUS",
+                            "price": "1100000000.00",
+                        }
+                    ],
+                    "colors": [
+                        {
+                            "id": "00000000-0000-0000-0000-000000000003",
+                            "vehicle_id": "00000000-0000-0000-0000-000000000001",
+                            "name": "Xanh",
+                            "color_code": "#0000FF",
+                            "price_extra": "5000000.00",
+                        }
+                    ],
+                },
+            },
+        )
+
+    http_client = httpx.AsyncClient(
+        transport=httpx.MockTransport(handler), base_url="http://backend.test"
+    )
+    client = BackendHttpClient(http_client)
+
+    detail = await client.get_vehicle_detail("vf8")
+
+    assert detail.name == "VF8"
+    assert len(detail.variants) == 1
+    assert detail.variants[0].name == "Plus"
+    assert len(detail.colors) == 1
+    assert detail.colors[0].name == "Xanh"
+
+    await http_client.aclose()
+
+
 async def test_maps_network_failure_to_unavailable_error():
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("connection refused", request=request)

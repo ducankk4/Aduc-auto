@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from ai_service.application.dto.vehicle import VehicleSummaryDTO
+from ai_service.application.dto.vehicle import VehicleDetailDTO, VehicleSummaryDTO
 
 
 class BackendPort(Protocol):
@@ -21,6 +21,19 @@ class BackendPort(Protocol):
             limit: Number of vehicles per page.
 
         Raises:
+            BackendUnavailableError: backend is unreachable or timed out.
+            BackendError: backend returned an unexpected error response.
+        """
+        ...
+
+    async def get_vehicle_detail(self, slug: str) -> VehicleDetailDTO:
+        """Return full detail of a single vehicle, including variants and colors.
+
+        Args:
+            slug: URL slug identifying the vehicle.
+
+        Raises:
+            BackendNotFoundError: no vehicle exists with this slug.
             BackendUnavailableError: backend is unreachable or timed out.
             BackendError: backend returned an unexpected error response.
         """

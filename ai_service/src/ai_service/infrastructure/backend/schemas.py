@@ -25,3 +25,44 @@ class VehicleSummarySchema(BaseModel):
     category: str
     base_price: Decimal
     is_active: bool
+
+
+class VariantSchema(BaseModel):
+    """Subset of backend's VariantResponseSchema needed in vehicle detail."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: UUID
+    name: str
+    sku: str
+    price: Decimal
+
+
+class ColorSchema(BaseModel):
+    """Subset of backend's ColorResponseSchema needed in vehicle detail."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: UUID
+    name: str
+    color_code: str
+    price_extra: Decimal
+
+
+class VehicleDetailSchema(BaseModel):
+    """Subset of backend's VehicleResponseSchema needed for full vehicle
+    detail, including variants and colors. Deliberately excludes fields
+    ai-service never touches (created_at, ...).
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: UUID
+    name: str
+    slug: str
+    category: str
+    description: str | None = None
+    base_price: Decimal
+    is_active: bool
+    variants: list[VariantSchema] = []
+    colors: list[ColorSchema] = []

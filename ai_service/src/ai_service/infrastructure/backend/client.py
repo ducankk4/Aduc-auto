@@ -14,7 +14,12 @@ from typing import Any
 
 import httpx
 
-from ai_service.application.dto.vehicle import VehicleSummaryDTO
+from ai_service.application.dto.vehicle import (
+    ColorDTO,
+    VariantDTO,
+    VehicleDetailDTO,
+    VehicleSummaryDTO,
+)
 from ai_service.application.ports.backend_port import BackendPort
 from ai_service.config import Settings
 from ai_service.infrastructure.backend.exceptions import (
@@ -25,7 +30,7 @@ from ai_service.infrastructure.backend.exceptions import (
     BackendUnavailableError,
     BackendValidationError,
 )
-from ai_service.infrastructure.backend.schemas import VehicleSummarySchema
+from ai_service.infrastructure.backend.schemas import VehicleDetailSchema, VehicleSummarySchema
 
 _STATUS_TO_ERROR: dict[int, type[BackendError]] = {
     400: BackendValidationError,
@@ -67,6 +72,27 @@ class BackendHttpClient(BackendPort):
             )
             for v in vehicles
         ]
+
+    async def get_vehicle_detail(self, slug: str) -> VehicleDetailDTO:
+        payload = await self._get(f"/catalog/vehicles/{slug}")
+        vehicle = VehicleDetailSchema.model_validate(payload)
+        return VehicleDetailDTO(
+            id=vehicle.id,
+            name=vehicle.name,
+            slug=vehicle.slug,
+            category=vehicle.category,
+            description=vehicle.description,
+            base_price=vehicle.base_price,
+            is_active=vehicle.is_active,
+            variants=[
+                VariantDTO(id=v.id, name=v.name, sku=v.sku, price=v.price)
+                for v in vehicle.variants
+            ],
+            colors=[
+                ColorDTO(id=c.id, name=c.name, color_code=c.color_code, price_extra=c.price_extra)
+                for c in vehicle.colors
+            ],
+        )
 
     async def _get(self, path: str, *, params: dict[str, Any] | None = None) -> Any:
         try:
