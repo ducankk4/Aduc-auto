@@ -10,3 +10,15 @@ from uuid import UUID
 class ChatResultDTO:
     session_id: UUID
     reply: str
+
+
+@dataclass(frozen=True)
+class MessageDTO:
+    role: str  # "user" | "assistant"
+    content: str
+
+
+@dataclass(frozen=True)
+class ConversationHistoryDTO:
+    session_id: UUID
+    messages: list[MessageDTO]

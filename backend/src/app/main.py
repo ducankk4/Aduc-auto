@@ -74,7 +74,7 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
         },
     )
 
-# ⑤ Routers
+#  Routers
 prefix = "/api/v1"
 app.include_router(auth_router, prefix=prefix)
 app.include_router(admin_users_router, prefix=prefix)
@@ -88,3 +88,5 @@ app.include_router(payments_router, prefix=prefix)
 @app.get("/health", tags=["Health"])
 async def health_check():
     return {"status": "ok", "app": "aduc-auto-backend"}
+
+# uv run uvicorn app.main:app --reload --app-dir src

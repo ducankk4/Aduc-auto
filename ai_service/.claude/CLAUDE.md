@@ -13,6 +13,7 @@ Kế hoạch đầy đủ (scope, tool catalog, RBAC, RAG, lộ trình phase, kh
 5. **RAG chỉ chứa nội dung tĩnh** (mô tả dài, FAQ, chính sách). Giá, tồn kho, trạng thái đơn luôn lấy từ API backend tại thời điểm trả lời — không bao giờ lấy từ vector store.
 6. **Subagent không gọi lẫn nhau.** Chỉ supervisor điều phối và tổng hợp.
 7. **Không lưu JWT vào LangGraph checkpoint hay conversation store.** Token chỉ sống trong request scope.
+8. **Không hard-code giá trị phụ thuộc môi trường/triển khai** — URL, host, port, timeout, tên model, API key... Mọi giá trị loại này phải là field trong `config.py::Settings`, đọc từ `.env`, **không** có default hard-code trong code Python (kể cả trong `Settings` — field không có default, thiếu biến env thì phải crash lúc khởi động, không âm thầm dùng giá trị đoán). Không áp dụng cho hằng số nội tại của chương trình (mã lỗi, HTTP status gắn với 1 loại exception, route path, tên field DTO...) — những cái đó là định danh của code, đổi qua `.env` sẽ vô nghĩa, không phải "hard code" theo nghĩa này.
 
 ## Cấu trúc thư mục (Layered Architecture)
 
@@ -32,10 +33,6 @@ Quy tắc phụ thuộc: `presentation → application → domain`; `infrastruct
 - `.claude/rules/code-style.md` — quy ước code style Python/FastAPI/LangChain cho dự án này.
 - `.claude/rules/error-handling-logging.md` — nguyên tắc try/except và logging, áp cho từng layer + riêng cho tool-calling.
 
-## Model Anthropic
-
-Mặc định dùng `claude-opus-5` cho toàn bộ agent (xem lý do phân tầng model ở `docs/roadmap-ai-service.md` mục 12). Không tự ý đổi sang model khác hoặc hạ effort khi viết code mới — đây là quyết định đã chốt, chỉ đổi khi người dùng yêu cầu rõ.
-
 ## Trạng thái hiện tại
 
-Dự án mới ở mức skeleton (`main.py` là stub, `src/config.py` rỗng, `.env` rỗng). Chưa có `langchain-anthropic`, `httpx`, checkpoint store, hay embedding client trong `pyproject.toml` — xem mục 12 của roadmap trước khi thêm dependency để tránh trùng lặp quyết định.
+Dự án đã qua Phase 0: có `chat`/`chat/stream`/`chat/{session_id}` endpoint, checkpoint SQLite, chat model provider (xem `infrastructure/llm/factory.py` — provider cụ thể quyết định ở đó, không pre-lock ở tài liệu). Chưa có embedding client trong `pyproject.toml` — xem mục 12 của roadmap trước khi thêm dependency để tránh trùng lặp quyết định.

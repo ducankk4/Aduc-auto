@@ -8,9 +8,6 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
-from ai_service.application.use_cases.get_history import get_history
-from ai_service.application.use_cases.send_message import send_message
-from ai_service.application.use_cases.stream_message import stream_message
 from ai_service.bootstrap.container import AppContainer
 from ai_service.domain.actor import AuthContext
 from ai_service.presentation.dependencies import get_auth_context
@@ -30,7 +27,9 @@ async def post_chat(
     container: AppContainer = Depends(get_container),
     auth: AuthContext = Depends(get_auth_context),
 ):
-    result = await send_message(container.graph, payload.session_id, payload.message, auth)
+    result = await container.chat_use_case.send_message(
+        payload.session_id, payload.message, auth
+    )
     return success(
         data={
             "session_id": str(result.session_id),
@@ -47,8 +46,8 @@ async def post_chat_stream(
     auth: AuthContext = Depends(get_auth_context),
 ):
     async def event_source():
-        async for event in stream_message(
-            container.graph, payload.session_id, payload.message, auth
+        async for event in container.chat_use_case.stream_message(
+            payload.session_id, payload.message, auth
         ):
             yield f"data: {json.dumps(event)}\n\n"
 
@@ -60,10 +59,10 @@ async def get_chat_history(
     session_id: UUID,
     container: AppContainer = Depends(get_container),
 ):
-    history = await get_history(container.graph, session_id)
+    history = await container.chat_use_case.get_history(session_id)
     return success(
         data={
             "session_id": str(history.session_id),
-            "messages": [{"role": t.role, "content": t.content} for t in history.turns],
+            "messages": [{"role": m.role, "content": m.content} for m in history.messages],
         }
     )

@@ -14,7 +14,9 @@ lúc khởi động, một lần duy nhất.
 ## `container.py::AppContainer` / `build_container()`
 
 `build_container()` làm đúng theo thứ tự: tạo `BackendHttpClient` (infra) →
-tạo `ChatAnthropic` qua `build_chat_model` (infra) → tạo tool list qua
+tạo chat model qua `build_chat_model` (infra — hiện đang là `ChatGroq`, xem
+`infrastructure/README.md` về vì sao chọn provider nào là quyết định riêng
+của tầng này) → tạo tool list qua
 `build_catalog_tools(backend_client)` (application, nhận infra làm tham số
 — đây chính là dependency injection) → build `graph` qua `build_supervisor`
 (application). Kết quả đóng gói vào `AppContainer` — một dataclass "túi đựng"

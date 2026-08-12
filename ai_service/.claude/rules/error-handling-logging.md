@@ -25,7 +25,7 @@ Nếu một đoạn `try/except` không phục vụ 1 trong 4 mục đích trên
 
 | Layer | Có nên `try/except` rộng? | Vai trò |
 |---|---|---|
-| **`infrastructure/`** (`backend/*Client`, `rag/*`, `persistence/*`, `llm/*`) | Có — nhưng chỉ catch **exception cụ thể** của thư viện đang dùng (`httpx.HTTPStatusError`, `httpx.TimeoutException`, lỗi driver vector store, lỗi SDK Anthropic) | Dịch lỗi hạ tầng → domain exception của ai-service. Đây là nơi **duy nhất** biết `httpx`, driver DB, SDK LLM tồn tại — không để các exception đó rò rỉ lên `application/` |
+| **`infrastructure/`** (`backend/*Client`, `rag/*`, `persistence/*`, `llm/*`) | Có — nhưng chỉ catch **exception cụ thể** của thư viện đang dùng (`httpx.HTTPStatusError`, `httpx.TimeoutException`, lỗi driver vector store, lỗi SDK chat model provider) | Dịch lỗi hạ tầng → domain exception của ai-service. Đây là nơi **duy nhất** biết `httpx`, driver DB, SDK LLM tồn tại — không để các exception đó rò rỉ lên `application/` |
 | **`application/ports/`** (Protocol) | Không — port không có implementation, không có gì để catch | Chỉ khai báo contract |
 | **`application/tools/`** | Có, nhưng theo quy tắc riêng ở mục 5 — không giống các layer khác | Bọc lỗi từ port thành `tool_result` lỗi cho model, thay vì để exception phá graph |
 | **`application/use_cases/`, `application/orchestration/`** | Hầu như không | Nơi chứa logic điều phối hội thoại/agent — càng ít try/except càng dễ đọc luồng chính. Chỉ catch khi có ý nghĩa nghiệp vụ thật (vd: hết `PendingAction` TTL thì tạo lại), không catch "cho chắc" |

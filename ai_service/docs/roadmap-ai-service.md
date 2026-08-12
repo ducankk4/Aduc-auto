@@ -57,7 +57,6 @@ ai_service/
     │   └── dto/
     │
     ├── domain/                   # CHỈ state riêng của AI, không copy entity backend
-    │   ├── conversation.py       # Conversation, Turn
     │   ├── pending_action.py     # PendingAction + payload hash
     │   ├── actor.py              # AuthContext: token, is_authenticated, permissions
     │   └── enums.py              # ConfirmationStatus, AgentRole
@@ -187,7 +186,7 @@ Frontend ──(Bearer JWT của user)──▶ ai-service ──(forward nguyê
 | Corpus | Mô tả xe dạng dài, FAQ, chính sách đặt cọc/hủy/hoàn tiền, so sánh chi phí sử dụng, hướng dẫn lái thử |
 | **Không** đưa vào corpus | Giá, `price_extra` màu, tiền cọc, tồn kho, trạng thái đơn — luôn gọi API |
 | Nguồn | 2 nguồn: (a) `description` của vehicle sync từ `GET /catalog/vehicles/{slug}`, (b) file markdown chính sách/FAQ do team soạn trong `ai_service/knowledge/` |
-| Embedding | Anthropic **không có** embeddings API → dùng bge-m3 self-host (đúng kinh nghiệm sẵn có) hoặc dịch vụ embedding riêng |
+| Embedding | Nhiều provider chat model không có embeddings API (kể cả provider đang dùng cho chat model, xem `infrastructure/llm/factory.py`) → dùng bge-m3 self-host (đúng kinh nghiệm sẵn có) hoặc dịch vụ embedding riêng, kiểm tra riêng lúc chọn |
 | Vector store | pgvector (DB riêng của ai-service) cho MVP; Qdrant/OpenSearch nếu cần scale |
 | Đồng bộ | Job định kỳ + trigger thủ công; mỗi chunk gắn `vehicle_slug`, `source`, `synced_at` |
 | Chống lệch dữ liệu | Chunk mô tả xe **không chứa số giá**. Nếu mô tả gốc có giá, strip khi ingest. Prompt bắt buộc: "khi nói tới giá/cọc, phải gọi tool, không dùng nội dung truy xuất" |
@@ -313,28 +312,19 @@ Cần bổ sung:
 
 | Package | Vai trò |
 |---|---|
-| `langchain-anthropic` | `ChatAnthropic` — **chưa cài** |
+| Chat model provider package | Không pre-lock ở đây — chọn/đổi theo provider dùng thực tế lúc code (infra `llm/factory.py` là nơi duy nhất biết provider cụ thể, xem `code-style.md` mục 6). Hiện đang dùng `langchain-groq`. |
 | `httpx` | Backend HTTP client |
 | `langgraph-checkpoint-postgres` (hoặc `-sqlite` cho dev) | Persist checkpoint — bản base `langgraph-checkpoint` đã có, chỉ là in-memory |
 | Thư viện embedding + vector store | RAG (bge-m3 / pgvector client) |
 | `deepagents` *(tuỳ chọn)* | **Chưa cài.** LangChain 1.3.14 đã có sẵn `create_agent` + middleware `todo`, `human_in_the_loop`, `summarization`, `context_editing`, và subagent transformer — **đủ để dựng kiến trúc deepagent mà không cần package riêng**. Chỉ thêm `deepagents` nếu muốn preset dựng sẵn. |
 
-### Model — mặc định và phương án phân tầng
+### Model & provider — quyết định ở tầng infrastructure, không pre-plan ở roadmap
 
-Mặc định dùng **`claude-opus-5`** cho toàn bộ agent (supervisor + subagent). Đây là lựa chọn an toàn nhất về chất lượng, đặc biệt cho luồng ghi dữ liệu.
+Provider/model cho từng agent (supervisor + subagent) là quyết định triển khai, tự chốt lúc code từng phần chứ không khoá sẵn ở đây — tránh tài liệu lệch code mỗi khi đổi provider. Nơi duy nhất biết provider cụ thể là `infrastructure/llm/factory.py`; `Settings.model_supervisor` (và các field model khác nếu tách theo subagent) luôn đọc từ `.env`, không hard-code trong code Python.
 
-Nếu sau này cần tối ưu chi phí, đây là phương án phân tầng để anh **cân nhắc và tự quyết** (không nên hạ tầng mặc định khi chưa đo):
+Cân nhắc chung khi chọn model cho từng vai trò (không gắn với 1 provider cụ thể): agent có ghi dữ liệu (`order_agent`, `admin_agent`) nên ưu tiên model mạnh nhất đang có; agent read-only nặng đọc (`catalog_advisor`) có thể dùng model rẻ/nhanh hơn nếu đã đo và chấp nhận đánh đổi chất lượng. Prompt caching cho system prompt của supervisor vẫn đáng bật nếu provider hỗ trợ (giảm chi phí đáng kể ở chatbot nhiều lượt).
 
-| Vai trò | Model | Giá (input/output / 1M token) | Lý do |
-|---|---|---|---|
-| Supervisor | `claude-opus-5` | $5 / $25 | Routing + tổng hợp, quyết định chất lượng cả hệ |
-| `order_agent`, `admin_agent` | `claude-opus-5` | $5 / $25 | Có ghi dữ liệu → không hạ tầng |
-| `catalog_advisor` (read-only, nặng đọc) | `claude-haiku-4-5` | $1 / $5 | Chủ yếu đọc & trích xuất, ít suy luận khó |
-| `lead_agent` | `claude-sonnet-5` | $3 / $15 | Hội thoại thu thập thông tin, độ khó trung bình |
-
-Cấu hình `effort` (`output_config.effort`): `high` cho supervisor, `medium`/`low` cho subagent read-only. Bật **prompt caching** cho system prompt của supervisor (prompt dài, ổn định, lặp lại mọi lượt) — tiết kiệm đáng kể ở chatbot nhiều lượt.
-
-> Lưu ý: Anthropic **không cung cấp embeddings API** — phần embedding của RAG phải dùng nhà cung cấp/model khác (bge-m3 self-host).
+> Lưu ý: embedding cho RAG không nhất thiết cùng provider với chat model — nhiều provider LLM không có embeddings API, cần kiểm tra riêng khi chọn (vd bge-m3 self-host là một lựa chọn không phụ thuộc provider chat).
 
 ### Config cần có (`.env` hiện đang trống)
 
@@ -342,7 +332,7 @@ Cấu hình `effort` (`output_config.effort`): `high` cho supervisor, `medium`/`
 APP_ENV, APP_DEBUG
 BACKEND_BASE_URL=http://localhost:8000/api/v1
 BACKEND_TIMEOUT_SECONDS=15
-ANTHROPIC_API_KEY
+GROQ_API_KEY
 MODEL_SUPERVISOR / MODEL_SUBAGENT
 AI_DATABASE_URL          # DB riêng của ai-service (conversation + checkpoint + vector)
 EMBEDDING_ENDPOINT

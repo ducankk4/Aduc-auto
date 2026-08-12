@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,7 +25,7 @@ class Settings(BaseSettings):
     backend_base_url: str
     backend_timeout_seconds: float
 
-    anthropic_api_key: str
+    groq_api_key: str
     model_supervisor: str
 
     ai_service_port: int
@@ -31,3 +33,9 @@ class Settings(BaseSettings):
     # Temporary Phase 0 storage; replaced by AI_DATABASE_URL (Postgres) once
     # PendingAction (Phase 2) needs durability beyond local dev.
     checkpoint_sqlite_path: str
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Return the process-wide Settings instance, parsed from .env exactly once."""
+    return Settings()

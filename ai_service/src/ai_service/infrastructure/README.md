@@ -4,14 +4,15 @@
 
 Đây là layer **implement** các `Protocol` khai báo ở `application/ports/`.
 Quy tắc ngược hẳn với `application/`: layer này *được phép* — và là nơi
-**duy nhất được phép** — import `httpx`, `langchain_anthropic`,
-`langgraph.checkpoint.sqlite`. Nếu sau này thấy `httpx` được import ở bất kỳ
+**duy nhất được phép** — import `httpx`, thư viện chat model provider cụ thể
+(hiện là `langchain_groq`), `langgraph.checkpoint.sqlite`. Nếu sau này thấy
+`httpx` được import ở bất kỳ
 đâu ngoài `infrastructure/backend/client.py`, đó là dấu hiệu sai layer.
 
 Ý nghĩa thực dụng: muốn đổi từ SQLite checkpoint sang Postgres (chắc chắn sẽ
-làm ở Phase 2+, xem `docs/roadmap-ai-service.md` mục 12), hoặc đổi
-`claude-opus-5` sang model khác, hoặc đổi thư viện gọi HTTP — chỉ sửa trong
-folder này, `application/` và `presentation/` không biết gì đã đổi.
+làm ở Phase 2+, xem `docs/roadmap-ai-service.md` mục 12), hoặc đổi model/
+provider chat, hoặc đổi thư viện gọi HTTP — chỉ sửa trong folder này,
+`application/` và `presentation/` không biết gì đã đổi.
 
 ## `backend/client.py` — nơi duy nhất biết backend "nói chuyện" thế nào
 
@@ -55,11 +56,13 @@ infra. Nhờ `bootstrap/app_factory.py` chỉ cần biết duy nhất `AiService
 `LLMProviderError`...) tự động được xử lý đúng mà không cần sửa exception
 handler.
 
-## `llm/factory.py` — 1 chỗ duy nhất tạo `ChatAnthropic`
+## `llm/factory.py` — 1 chỗ duy nhất tạo chat model, và duy nhất biết provider
 
-Nhỏ nhưng quan trọng: nếu code ở nhiều nơi tự `ChatAnthropic(model=...)`, đổi
-model cho toàn hệ thống sẽ phải grep-and-replace nhiều file, dễ sót. Model
-mặc định `claude-opus-5` **luôn đọc từ `Settings`**, không hard-code trong
+Nhỏ nhưng quan trọng: nếu code ở nhiều nơi tự dựng client provider riêng, đổi
+model hay đổi hẳn provider cho toàn hệ thống sẽ phải grep-and-replace nhiều
+file, dễ sót. Provider cụ thể (hiện là `ChatGroq`) **không** được coi là
+quyết định cố định — chỉ sống ở đúng file này, đổi provider chỉ sửa 1 chỗ.
+Tên model **luôn đọc từ `Settings.model_supervisor`**, không hard-code trong
 factory (đúng yêu cầu "không được hard code" — xem `config.py`).
 
 ## `persistence/checkpointer.py` — vì sao là async context manager

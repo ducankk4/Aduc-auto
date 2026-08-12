@@ -72,14 +72,12 @@ class BackendHttpClient(BackendPort):
         try:
             response = await self._http_client.get(path, params=params)
         except httpx.TimeoutException as err:
-            raise BackendUnavailableError(
-                "Hệ thống backend phản hồi quá chậm, vui lòng thử lại."
-            ) from err
+            raise BackendUnavailableError("Backend response timed out, please try again.") from err
         except httpx.RequestError as err:
-            raise BackendUnavailableError("Không thể kết nối tới hệ thống backend.") from err
+            raise BackendUnavailableError("Unable to connect to backend.") from err
 
         if response.status_code >= 500:
-            raise BackendUnavailableError("Hệ thống backend đang gặp sự cố, vui lòng thử lại sau.")
+            raise BackendUnavailableError("Backend is currently unavailable, please try again later.")
 
         if response.is_error:
             raise self._build_error(response)
@@ -97,7 +95,7 @@ class BackendHttpClient(BackendPort):
         try:
             body = response.json()
         except ValueError:
-            return response.text or "Backend trả về lỗi không xác định."
+            return response.text or "Backend returned an unknown error."
 
         if isinstance(body, dict):
             error = body.get("error")
@@ -108,4 +106,4 @@ class BackendHttpClient(BackendPort):
                 return detail
             if isinstance(detail, list) and detail:
                 return "; ".join(str(item.get("msg", item)) for item in detail)
-        return "Backend trả về lỗi không xác định."
+        return "Backend returned an unknown error."

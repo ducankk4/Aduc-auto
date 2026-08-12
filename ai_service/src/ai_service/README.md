@@ -42,7 +42,8 @@ không kèm token. Theo đúng thứ tự file/hàm được gọi:
    - `Depends(get_container)` đọc `request.app.state.container` — object đã
      được ráp sẵn từ lúc app khởi động (`bootstrap/app_factory.py`), không
      tạo mới gì ở bước này.
-2. Gọi **`application/use_cases/send_message.py::send_message(graph, None, message, auth)`**.
+2. Gọi **`application/use_cases/chat_use_case.py::ChatUseCase.send_message(None, message, auth)`**
+   (trên `container.chat_use_case`, instance đã cầm sẵn `graph` qua constructor).
    - Vì `session_id=None` → sinh `uuid4()` mới làm `thread_id`.
    - Build `context = {"auth_token": None}` (kiểu `AgentContext`) — kênh
      runtime-only, không bị lưu xuống checkpoint.
@@ -52,7 +53,8 @@ không kèm token. Theo đúng thứ tự file/hàm được gọi:
    - LangGraph tự **load lại state cũ** từ `AsyncSqliteSaver`
      (`infrastructure/persistence/checkpointer.py`) theo `thread_id` — lần
      đầu tiên với session mới thì state rỗng.
-   - Model (`ChatAnthropic`, dựng bởi `infrastructure/llm/factory.py`) đọc
+   - Chat model (dựng bởi `infrastructure/llm/factory.py`, hiện là `ChatGroq`)
+     đọc
      system prompt (`application/orchestration/prompts/supervisor_prompt.py`)
      + lịch sử + câu hỏi mới → quyết định gọi tool `list_vehicles`.
    - **`application/tools/catalog_tools.py::list_vehicles`** chạy: gọi
@@ -84,7 +86,7 @@ chỉ tham chiếu tới thông tin đã có.
 
 ### Khi có lỗi thật sự (không phải lỗi backend mà tool đã bắt được)
 
-Ví dụ `ANTHROPIC_API_KEY` sai/hết hạn → SDK Anthropic raise exception ngay
+Ví dụ `GROQ_API_KEY` sai/hết hạn → SDK provider raise exception ngay
 lúc model gọi API — exception này **không** đi qua đường "tool bắt lỗi" ở
 bước 3 (vì nó không phải lỗi từ `backend_port`), nó bay thẳng lên qua
 `send_message` → `post_chat` → không route nào bắt riêng → rơi vào

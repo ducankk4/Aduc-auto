@@ -78,22 +78,38 @@ KHÔNG dùng khi nào" để model không gọi nhầm tool khi có nhiều tool
   tool cho agent khác" (đã tự xác minh trong `.venv`, không phải giả định) —
   sẽ phải tự viết một `@tool` wrapper gọi `subagent_graph.ainvoke(...)`.
 
-## `use_cases/` — mỗi hàm là một "động từ nghiệp vụ", không giữ state
+## `use_cases/chat_use_case.py::ChatUseCase` — 1 class, 3 method, 1 dependency dùng chung
 
-`send_message`, `stream_message`, `get_history` — mỗi hàm nhận input đã
-validate (từ `presentation/`), build `config`/`context` cho graph, gọi đúng
-1 thao tác trên `graph` (`ainvoke`/`astream`/`aget_state`), rồi map kết quả
-sang DTO/domain object. **Không có business logic thật ở đây** — chúng chỉ
-điều phối, đúng nghĩa "use case" trong Clean Architecture: một kịch bản, một
-lần chạy, không giữ state giữa các lần gọi (khác với route handler ở
-`presentation/api/chat.py` — nơi đó cũng mỏng, chỉ gọi use case rồi bọc
-envelope).
+`send_message`, `stream_message`, `get_history` gộp thành method của cùng
+1 class vì cả 3 chia sẻ đúng 1 dependency được inject 1 lần lúc startup:
+`graph` (giữ ở `self._graph` qua constructor, xem `code-style.md` mục 5).
+`ChatUseCase(graph)` được dựng đúng 1 lần trong `bootstrap/container.py`,
+route handler chỉ gọi `container.chat_use_case.send_message(...)` chứ không
+tự truyền `graph` qua tay mỗi lần gọi.
+
+Mỗi method nhận input đã validate (từ `presentation/`), build
+`config`/`context` cho graph (qua helper riêng `_thread_config`/
+`_agent_context` để tránh lặp lại giữa 3 method), gọi đúng 1 thao tác trên
+`graph` (`ainvoke`/`astream`/`aget_state`), rồi map kết quả sang DTO/domain
+object. **Không có business logic thật ở đây** — chỉ điều phối, đúng nghĩa
+"use case" trong Clean Architecture, chỉ khác route handler ở
+`presentation/api/chat.py` (nơi đó mỏng hơn nữa, chỉ gọi use case rồi bọc
+envelope) ở chỗ `ChatUseCase` có state constructor-level (`self._graph`),
+còn route handler thì không.
+
+Lưu ý ranh giới khi thêm use case mới (vd `confirm_action` ở Phase 2): chỉ
+thêm vào `ChatUseCase` nếu nó cũng dùng `graph` (hoặc dependency khác đã có
+sẵn ở class này). Nếu use case mới cần một dependency hoàn toàn khác không
+liên quan (vd `PendingActionRepository` mà không đụng `graph`), đừng nhét
+vào đây "cho tiện cùng chủ đề chat" — tạo class riêng, tránh lặp lại kiểu
+god-object của `DocumentService` (300+ dòng, 6 trách nhiệm) đã thấy khi so
+sánh với 1 codebase tham khảo khác.
 
 ## Bẫy hay gặp
 
 - Thấy mình đang cộng giá, so sánh trạng thái đơn, hay validate business rule
   trong `tools/` hoặc `use_cases/`? Dừng lại — logic đó thuộc về `backend`,
   gọi API chứ đừng tự tính (nguyên tắc bất biến #2 trong `CLAUDE.md`).
-- Muốn gọi `httpx` hay `ChatAnthropic()` trực tiếp trong layer này để "tiện"?
+- Muốn gọi `httpx` hay khởi tạo chat model provider trực tiếp trong layer này để "tiện"?
   Không — phải qua port/factory ở `infrastructure/`, nếu không sẽ phá vỡ khả
   năng test bằng fake port.

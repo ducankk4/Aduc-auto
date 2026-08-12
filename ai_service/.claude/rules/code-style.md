@@ -39,15 +39,15 @@ async def get_vehicle_detail(slug: str) -> str:
 
     Returns:
         Formatted text describing the vehicle (name, price, variants, colors)
-        ready for the model to read. Returns a Vietnamese-language error
-        message if the vehicle is not found — that message is user-facing
-        conversation content, not code, so it follows the product's chat
-        language, not this docstring's language.
+        ready for the model to read. Returns an English error message if the
+        vehicle is not found — this is a tool result exchanged between the
+        tool and the agent, not the reply shown to the end user, so it
+        follows code language (English), not the product's chat language.
     """
     ...
 ```
 
-Docstring của tool **là một phần của prompt** (LangChain lấy docstring làm `description` truyền cho model) — vẫn viết **bằng tiếng Anh** như mọi docstring/comment khác trong code (xem mục 8), nêu rõ: dùng khi nào, KHÔNG dùng khi nào nếu dễ nhầm với tool khác. Model đọc hiểu tiếng Anh tốt và điều này giữ toàn bộ codebase nhất quán một ngôn ngữ. Tiếng Việt chỉ xuất hiện trong **giá trị trả về** khi giá trị đó là nội dung hội thoại thật sự hiển thị cho người dùng cuối (message lỗi, câu trả lời) — không xuất hiện trong docstring, comment, hay tên định danh. Không nhồi ví dụ hội thoại giả vào docstring — nếu cần dạy hành vi phức tạp, đưa vào system prompt của subagent (system prompt cũng viết tiếng Anh; phần hướng dẫn model trả lời bằng tiếng Việt là một câu trong đó, không phải lý do viết cả prompt bằng tiếng Việt).
+Docstring của tool **là một phần của prompt** (LangChain lấy docstring làm `description` truyền cho model) — vẫn viết **bằng tiếng Anh** như mọi docstring/comment khác trong code (xem mục 8), nêu rõ: dùng khi nào, KHÔNG dùng khi nào nếu dễ nhầm với tool khác. Model đọc hiểu tiếng Anh tốt và điều này giữ toàn bộ codebase nhất quán một ngôn ngữ. **Giá trị trả về của tool cũng viết bằng tiếng Anh** — kể cả message lỗi — vì đây là dữ liệu trao đổi nội bộ giữa tool và agent (một dạng "service-to-service response"), **không phải** câu trả lời cuối cùng hiển thị cho khách hàng. Câu trả lời cuối cùng cho khách hàng do model tự sinh ra dựa trên các tool result này, và do system prompt của subagent quyết định ngôn ngữ (xem `SUPERVISOR_SYSTEM_PROMPT` — luôn buộc model trả lời khách bằng tiếng Việt vì đây là sản phẩm cho người dùng Việt Nam, bất kể ngôn ngữ của tool result đầu vào). Không nhồi ví dụ hội thoại giả vào docstring — nếu cần dạy hành vi phức tạp, đưa vào system prompt của subagent (system prompt viết tiếng Anh; riêng câu lệnh buộc model trả lời khách bằng tiếng Việt là ngoại lệ duy nhất — đó là yêu cầu sản phẩm, không phải "code style").
 
 ## 4. Pydantic (schema tầng presentation & dto)
 
@@ -57,7 +57,9 @@ Docstring của tool **là một phần của prompt** (LangChain lấy docstrin
 
 ## 5. Async, LangGraph node & use_case
 
-- `application/use_cases/`: mỗi use case là một async function nhận DTO, trả DTO — không cần bọc class nếu không giữ state giữa các lần gọi. Chỉ dùng class khi cần giữ dependency đã inject qua constructor (khi đó constructor chỉ nhận port, không tự khởi tạo infrastructure bên trong).
+- `application/use_cases/`: gom các use case cùng chia sẻ **ít nhất một dependency được inject một lần lúc startup** (vd. `CompiledStateGraph`, một repository) thành một class, constructor chỉ nhận đúng những port/dependency đó — không tự khởi tạo infrastructure bên trong. Method public = mỗi method một use case (async, nhận tham số call-time, trả DTO), giữ cách đặt tên verb-first như tool (mục 3). Chỉ viết dạng function rời (không bọc class) khi use case đó **không có dependency nào cần giữ giữa các lần gọi** — ép nó vào class lúc đó chỉ tạo ra namespace rỗng không có lợi ích gì.
+  - Gom theo **dependency dùng chung**, không phải theo "cùng chủ đề nghe hợp lý". Nếu hai use case không share constructor dependency, đừng gộp chung class chỉ vì cùng nói về một khái niệm nghiệp vụ — dễ phình thành class ôm quá nhiều trách nhiệm không liên quan trực tiếp (vd. một class vừa lo tạo dữ liệu vừa lo truy vấn vừa lo xử lý file, dù cả ba "cùng nói về document").
+  - Try/except bên trong method của class này vẫn theo đúng `error-handling-logging.md` (mục 2, tầng `application/`) — không catch `Exception` rộng "cho chắc" ở mọi method, không nuốt lỗi trả về rỗng mà không có lý do nghiệp vụ ghi chú rõ.
 - LangGraph node (trong `application/orchestration/`) là async function thuần, nhận `state` đã typed, trả partial state update — không side-effect ngoài việc gọi port.
 - Không block event loop: không gọi thư viện sync (DB driver sync, `time.sleep`) trong code chạy trong graph.
 
@@ -73,9 +75,10 @@ Docstring của tool **là một phần của prompt** (LangChain lấy docstrin
 - Mock ở biên port (`BackendPort`, `RetrieverPort`), không mock sâu vào `httpx.AsyncClient` — giữ test độc lập với implementation.
 - Không mock response của LLM bằng chuỗi tự viết tay cho test hành vi agent phức tạp — dùng fixture ghi lại (cassette) hoặc test ở mức tool/use_case thay vì test full graph khi có thể.
 
-## 8. Docstring & comment — luôn tiếng Anh
+## 8. Ngôn ngữ trong code — luôn tiếng Anh, trừ đúng 1 ngoại lệ
 
-- **Mọi docstring và comment trong code, không ngoại lệ, viết bằng tiếng Anh** — kể cả docstring của agent tool (mục 3), kể cả comment giải thích inline. Đây là quy tắc cứng, không phải khuyến nghị.
+- **Mọi thứ nằm trong `src/` viết bằng tiếng Anh, không ngoại lệ**: docstring, comment inline, tên biến/hàm/class, log message (mục 4.6), exception message, response JSON trả ra ở `presentation/` (kể cả field lỗi 500 `{"error": {"message": ...}}`), và **giá trị trả về của agent tool** (mục 3) — toàn bộ những thứ này là "code" hoặc là response trao đổi **giữa các service/component nội bộ** (tool ↔ agent, ai-service ↔ client gọi API, log ↔ hệ thống giám sát), không phải hội thoại trực tiếp với khách hàng. Mục tiêu: giữ codebase chuyên nghiệp, nhất quán một ngôn ngữ.
 - Theo style Google (Args/Returns/Raises) cho method public của `application/ports/`, `application/use_cases/`, `infrastructure/*Client`, `presentation/api/`, và `application/tools/` — đồng bộ với style hiện có ở `backend`.
 - Module-level docstring 1-2 câu ở đầu file mô tả trách nhiệm của file, giống style `backend` (`"""Business Logic & Service Interface for the X Module."""`).
-- Tiếng Việt **chỉ** được phép xuất hiện trong: (a) giá trị chuỗi là nội dung hội thoại/response thật sự trả cho người dùng cuối (message lỗi hiển thị, câu trả lời của agent), và (b) tài liệu markdown dạng prose ở `docs/`, `.claude/`. Không viết trong tên biến/hàm/class, docstring, comment, hay log message.
+- **Ngoại lệ duy nhất — câu trả lời cuối cùng model sinh ra để nói chuyện trực tiếp với khách hàng/người dùng cuối**: đây là sản phẩm dành cho người dùng Việt Nam, nên luôn phải là tiếng Việt. Ngoại lệ này áp dụng đúng 1 chỗ: dòng lệnh trong system prompt của (sub)agent buộc model trả lời bằng tiếng Việt (xem ví dụ `SUPERVISOR_SYSTEM_PROMPT` ở `application/orchestration/prompts/`) — bản thân file system prompt vẫn viết tiếng Anh, chỉ riêng câu lệnh ngôn ngữ đó là tiếng Việt vì nó mô tả yêu cầu sản phẩm, không phải comment/code. Đây **không phải** lý do để tool result, exception message, hay bất kỳ chuỗi nào khác trong `src/` được viết tiếng Việt — model tự dịch/diễn giải tool result tiếng Anh sang câu trả lời tiếng Việt cho khách, không cần tool result đã sẵn tiếng Việt.
+- Tiếng Việt chỉ còn được phép ở tài liệu markdown dạng prose (`docs/`, `.claude/`, các `README.md`) — nơi viết cho anh đọc, không chạy trong runtime.

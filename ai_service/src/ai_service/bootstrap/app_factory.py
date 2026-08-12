@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from ai_service.bootstrap.container import build_container
-from ai_service.config import Settings
+from ai_service.config import get_settings
 from ai_service.domain.exceptions import AiServiceError
 from ai_service.infrastructure.persistence.checkpointer import build_checkpointer
 from ai_service.presentation.api.chat import chat_router
@@ -25,7 +25,7 @@ API_PREFIX = "/api/v1"
 
 
 def create_app() -> FastAPI:
-    settings = Settings()
+    settings = get_settings()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -62,7 +62,7 @@ def create_app() -> FastAPI:
             status_code=500,
             content={
                 "success": False,
-                "error": {"code": "INTERNAL_ERROR", "message": "Đã có lỗi hệ thống xảy ra."},
+                "error": {"code": "INTERNAL_ERROR", "message": "An internal server error occurred."},
             },
         )
 

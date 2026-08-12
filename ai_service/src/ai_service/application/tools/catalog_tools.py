@@ -30,21 +30,21 @@ def build_catalog_tools(backend_port: BackendPort) -> list[BaseTool]:
 
         Returns:
             Formatted text listing vehicle name, category, and base price,
-            ready for the model to read and present to the user. Returns a
-            Vietnamese-language error message if the catalog cannot be
-            reached — that message is user-facing conversation content, not
-            code, so it follows the product's chat language.
+            ready for the model to read and present to the user. Returns an
+            English error message if the catalog cannot be reached — this is
+            a tool result exchanged with the agent, not the reply shown to
+            the end user, so it follows code language (English).
         """
         try:
             vehicles = await backend_port.list_vehicles(page=page, limit=limit)
         except BackendUnavailableError as err:
             logger.bind(operation="list_vehicles").warning("Backend unavailable: {}", err)
-            return "Error: hệ thống danh mục xe tạm thời không truy cập được, vui lòng thử lại sau."
+            return "Error: the vehicle catalog is temporarily unavailable, please try again later."
         except BackendError as err:
             return f"Error: {err.message}"
 
         if not vehicles:
-            return "Không có mẫu xe nào trong danh mục ở trang này."
+            return "No vehicles found in the catalog on this page."
 
         return _format_vehicle_list(vehicles)
 
@@ -54,9 +54,9 @@ def build_catalog_tools(backend_port: BackendPort) -> list[BaseTool]:
 def _format_vehicle_list(vehicles: list[VehicleSummaryDTO]) -> str:
     lines: list[str] = []
     for vehicle in vehicles:
-        status = "" if vehicle.is_active else " [ngừng kinh doanh]"
+        status = "" if vehicle.is_active else " [discontinued]"
         lines.append(
             f"- {vehicle.name} ({vehicle.category}), slug={vehicle.slug}, "
-            f"giá niêm yết: {vehicle.base_price:,.0f} VND{status}"
+            f"list price: {vehicle.base_price:,.0f} VND{status}"
         )
-    return "Danh sách xe:\n" + "\n".join(lines)
+    return "Vehicle list:\n" + "\n".join(lines)

@@ -33,15 +33,6 @@ dùng để quyết định quyền hạn. Nó chỉ để:
 `AuthContext.anonymous()` là factory cho case không có token (khách vãng lai) —
 dùng thay vì tạo `AuthContext(None, False, None, [])` thủ công ở khắp nơi.
 
-### `conversation.py` — `Turn`, `ConversationHistory`
-Đây là "hình dạng" một lượt hội thoại khi trả về cho client qua
-`GET /chat/{session_id}` — **cố tình tách biệt** khỏi kiểu `BaseMessage` của
-LangChain (`HumanMessage`, `AIMessage`...). Lý do: nếu sau này đổi cách lưu
-hội thoại (đổi checkpointer, hoặc thậm chí đổi hẳn khỏi LangGraph), phần trả
-lời cho client (`presentation/`) không cần sửa gì — nó chỉ biết `Turn`, không
-biết LangGraph tồn tại. Việc "dịch" từ `BaseMessage` sang `Turn` nằm ở
-`application/use_cases/get_history.py`, không nằm ở đây.
-
 ### `exceptions.py` — `AiServiceError` + `ConversationNotFoundError`
 Đây là **gốc của toàn bộ cây exception** trong ai-service (kể cả
 `BackendError` ở `infrastructure/backend/exceptions.py` cũng kế thừa từ
@@ -60,7 +51,7 @@ tưởng đã có try/except bọc rồi (xem `error-handling-logging.md` mục 
 
 Đây là câu hỏi anh đã hỏi hôm trước — ghi lại ở đây luôn để nhớ lý do: domain
 giàu behavior (có method, tự validate invariant) chỉ đáng làm khi **có quy tắc
-nghiệp vụ thật cần bảo vệ**. `AuthContext`/`Turn` ở Phase 0 chỉ đi qua hệ thống
+nghiệp vụ thật cần bảo vệ**. `AuthContext` ở Phase 0 chỉ đi qua hệ thống
 chứ chưa bị ràng buộc gì đặc biệt. Khi tới Phase 2 làm `PendingAction` (có TTL,
 có `payload_hash`, có cờ `consumed`), đó mới là lúc domain cần method thật sự,
 vd `is_expired() -> bool`, `matches_payload(new_hash: str) -> bool` — lúc đó
@@ -69,7 +60,7 @@ phải dày".
 
 ## Bẫy hay gặp khi sửa/thêm code ở đây
 
-- Thêm field mới vào `Turn`/`AuthContext`? Được, miễn là kiểu dữ liệu thuần
+- Thêm field mới vào `AuthContext`? Được, miễn là kiểu dữ liệu thuần
   Python (`str`, `list`, dataclass khác) — **không** import Pydantic/LangChain
   vào đây dù rất tiện (Pydantic cho validate free). Validate thuộc về
   `presentation/schemas/`.
