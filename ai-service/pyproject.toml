@@ -1,0 +1,70 @@
+[project]
+name = "ai-service"
+version = "0.1.0"
+description = "AI agent service (supervisor + subagents) for Aduc Auto"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "deepagents>=0.7.0",
+    "httpx>=0.28.1",
+    "langchain-core>=0.3.0",
+    "langchain-groq>=0.2.0",
+    "langchain-huggingface>=0.1.0",
+    "langchain-qdrant>=0.2.0",
+    "langchain-text-splitters>=0.3.0",
+    "langgraph>=0.3.0",
+    "langgraph-checkpoint-sqlite>=2.0.0",
+    "loguru>=0.7.3",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.15.0",
+    "sentence-transformers>=3.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.9.0",
+]
+
+# ai-service là service chạy trực tiếp từ root, không build thành package.
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "TID"]
+# UP006/UP035: dự án cố ý dùng cú pháp typing cổ điển (Optional/List) cho khớp backend.
+ignore = ["UP006", "UP035"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+# Chặn import sai layer — dependency rule trong docs/ai_service_architecture_overview.md.
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"fastapi".msg = "Chỉ api/ được import FastAPI."
+"langgraph".msg = "Chỉ agent/ và core/checkpointer.py được import LangGraph."
+"langchain".msg = "Chỉ agent/ và infrastructure/llm/ được import LangChain."
+"langchain_core".msg = "Chỉ agent/ và infrastructure/llm/ được import LangChain."
+"langchain_groq".msg = "Chỉ infrastructure/llm/ được import LLM SDK."
+"sqlalchemy".msg = "Chỉ repository/ và infrastructure/ được import SQLAlchemy."
+"httpx".msg = "Chỉ repository/, infrastructure/ và api/ (wiring) được import httpx."
+"deepagents".msg = "Chỉ agent/ được import DeepAgents."
+"langchain_qdrant".msg = "Chỉ infrastructure/vector_store/ được import Qdrant."
+"qdrant_client".msg = "Chỉ infrastructure/vector_store/ được import Qdrant."
+"langchain_huggingface".msg = "Chỉ infrastructure/vector_store/ được import embedding SDK."
+
+[tool.ruff.lint.per-file-ignores]
+"api/**" = ["TID251"]
+"agent/**" = ["TID251"]
+"repository/**" = ["TID251"]
+"infrastructure/**" = ["TID251"]
+"core/checkpointer.py" = ["TID251"]
+"tests/**" = ["TID251"]
+"scripts/**" = ["TID251"]
