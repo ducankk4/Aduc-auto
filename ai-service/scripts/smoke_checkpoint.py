@@ -25,8 +25,8 @@ _THREAD_ID = "smoke-checkpoint-1"
 
 async def ask_approval_node(state: SupervisorState) -> Dict[str, Any]:
     """Pause the graph and wait for a human decision before answering."""
-    decision = interrupt("Bạn có duyệt cho graph chạy tiếp không?")
-    return {"messages": [AIMessage(content=f"Đã resume với quyết định: {decision}")]}
+    decision = interrupt("Do you approve this graph to continue?")
+    return {"messages": [AIMessage(content=f"Resumed with decision: {decision}")]}
 
 
 async def main() -> None:

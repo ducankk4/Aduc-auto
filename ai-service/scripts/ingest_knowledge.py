@@ -26,7 +26,7 @@ def load_documents() -> List[Document]:
     knowledge_dir = Path(settings.KNOWLEDGE_DIR)
     paths = sorted(knowledge_dir.glob("*.md"))
     if not paths:
-        raise SystemExit(f"Không tìm thấy file .md nào trong {knowledge_dir.resolve()}")
+        raise SystemExit(f"Can not find any markdown files in {knowledge_dir.resolve()}")
 
     documents = [
         Document(

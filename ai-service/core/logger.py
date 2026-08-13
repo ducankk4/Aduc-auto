@@ -45,33 +45,42 @@ def setup_logger() -> None:
         diagnose=settings.APP_DEBUG,
     )
 
-    _intercept_stdlib_logging()
+    # _intercept_stdlib_logging()
 
     logger.info("Logger configured [level={}]", log_level)
 
 
-def _intercept_stdlib_logging() -> None:
-    """Route all stdlib logging records through Loguru.
+# _NOISY_LOGGERS = ("aiosqlite",)
 
-    Libraries such as httpx, LangChain, and aiosqlite use stdlib logging
-    internally. This intercept handler ensures their output is formatted
-    and filtered by Loguru alongside application logs.
-    """
 
-    class _InterceptHandler(logging.Handler):
-        def emit(self, record: logging.LogRecord) -> None:
-            try:
-                level: str | int = logger.level(record.levelname).name
-            except ValueError:
-                level = record.levelno
+# def _intercept_stdlib_logging() -> None:
+#     """Route all stdlib logging records through Loguru.
 
-            frame, depth = logging.currentframe(), 2
-            while frame and frame.f_code.co_filename == logging.__file__:
-                frame = frame.f_back  # type: ignore[assignment]
-                depth += 1
+#     Libraries such as httpx, LangChain, and aiosqlite use stdlib logging
+#     internally. This intercept handler ensures their output is formatted
+#     and filtered by Loguru alongside application logs.
+#     """
 
-            logger.opt(depth=depth, exception=record.exc_info).log(
-                level, record.getMessage()
-            )
+#     class _InterceptHandler(logging.Handler):
+#         def emit(self, record: logging.LogRecord) -> None:
+#             try:
+#                 level: str | int = logger.level(record.levelname).name
+#             except ValueError:
+#                 level = record.levelno
 
-    logging.basicConfig(handlers=[_InterceptHandler()], level=0, force=True)
+#             frame, depth = logging.currentframe(), 2
+#             while frame and frame.f_code.co_filename == logging.__file__:
+#                 frame = frame.f_back  # type: ignore[assignment]
+#                 depth += 1
+
+#             logger.opt(depth=depth, exception=record.exc_info).log(
+#                 level, record.getMessage()
+#             )
+
+#     logging.basicConfig(handlers=[_InterceptHandler()], level=0, force=True)
+
+#     # These libraries log every driver-level call (cursor, execute, commit...)
+#     # at DEBUG, which is noise even when APP_DEBUG=true — keep them quiet
+#     # regardless of the app's own log level.
+#     for noisy_logger_name in _NOISY_LOGGERS:
+#         logging.getLogger(noisy_logger_name).setLevel(logging.WARNING)
