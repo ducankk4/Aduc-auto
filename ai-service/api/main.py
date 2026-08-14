@@ -13,10 +13,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from loguru import logger
 
-from api.chat import chat_router
-from api.dependencies import build_supervisor
+from api.routes.chat import chat_router
+from api.routes.conversation import conversation_router
+from api.dependencies import build_message_service, build_supervisor
 from api.response import error
-from core.checkpointer import open_checkpointer
+from agent.checkpointer import open_checkpointer
 from core.config import settings
 from core.exceptions import AIServiceError
 from core.logger import setup_logger
@@ -38,6 +39,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting ai-service [env={}, debug={}]", settings.APP_ENV, settings.APP_DEBUG)
     async with open_checkpointer() as checkpointer:
         app.state.supervisor = build_supervisor(checkpointer)
+        app.state.message_service = await build_message_service()
         logger.info("Supervisor ready")
         yield
     logger.info("ai-service shut down")
@@ -60,6 +62,7 @@ async def ai_service_error_handler(request: Request, exc: AIServiceError) -> JSO
 
 
 app.include_router(chat_router, prefix="/api/v1")
+app.include_router(conversation_router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["Health"])

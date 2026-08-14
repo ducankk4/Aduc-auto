@@ -5,6 +5,7 @@ description = "AI agent service (supervisor + subagents) for Aduc Auto"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "aiosqlite>=0.20.0",
     "deepagents>=0.7.0",
     "fastapi>=0.115.0",
     "httpx>=0.28.1",
@@ -42,7 +43,7 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "TID"]
-# UP006/UP035: dự án cố ý dùng cú pháp typing cổ điển (Optional/List) cho khớp backend.
+# UP006/UP035: ai-service cố ý dùng một cú pháp typing duy nhất (Optional/List) trong toàn service.
 ignore = ["UP006", "UP035"]
 
 [tool.ruff.lint.flake8-tidy-imports]
@@ -51,7 +52,8 @@ ban-relative-imports = "all"
 # Chặn import sai layer — dependency rule trong docs/ai_service_architecture_overview.md.
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "fastapi".msg = "Chỉ api/ được import FastAPI."
-"langgraph".msg = "Chỉ agent/ và core/checkpointer.py được import LangGraph."
+"langgraph".msg = "Chỉ agent/ được import LangGraph."
+"aiosqlite".msg = "Chỉ repository/ được import aiosqlite."
 "langchain".msg = "Chỉ agent/ và infrastructure/llm/ được import LangChain."
 "langchain_core".msg = "Chỉ agent/ và infrastructure/llm/ được import LangChain."
 "langchain_groq".msg = "Chỉ infrastructure/llm/ được import LLM SDK."
@@ -67,6 +69,5 @@ ban-relative-imports = "all"
 "agent/**" = ["TID251"]
 "repository/**" = ["TID251"]
 "infrastructure/**" = ["TID251"]
-"core/checkpointer.py" = ["TID251"]
 "tests/**" = ["TID251"]
 "scripts/**" = ["TID251"]

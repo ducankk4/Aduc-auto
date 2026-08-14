@@ -1,12 +1,4 @@
-"""Centralized settings for ai-service loaded from environment variables or .env file.
-
-Every field is declared WITHOUT a default: if a variable is missing, the
-application fails at startup with a clear validation error instead of
-silently running with a baked-in value. Copy .env.example to .env first.
-"""
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 class Settings(BaseSettings):
     """Application settings shared by every layer of ai-service."""
@@ -16,26 +8,32 @@ class Settings(BaseSettings):
 
     # Backend API Settings (data source for repository/)
     BACKEND_API_URL: str
-    BACKEND_API_TIMEOUT_SECONDS: int
+    BACKEND_API_TIMEOUT_SECONDS: int = 10
 
     # LangGraph Checkpointer Settings (SQLite)
-    CHECKPOINT_DB_PATH: str
+    CHECKPOINT_DB_PATH: str = "checkpoints.db"
+
+    # Conversation History Settings (SQLite)
+    CONVERSATION_DB_PATH: str = "conversations.db"
+    CONVERSATION_HISTORY_LIMIT: int = 10
 
     # LLM Settings (Groq)
     GROQ_API_KEY: str
     LLM_MODEL: str
-    LLM_TEMPERATURE: float
+    LLM_TEMPERATURE: float = 0.0
 
     # Vector Store Settings (Qdrant)
     QDRANT_URL: str
+    # No default: must match the collection the knowledge was ingested into.
     QDRANT_COLLECTION: str
 
     # Embedding & RAG Settings
+    # No default: changing the model without re-ingesting breaks search (dimension mismatch).
     EMBEDDING_MODEL: str
-    KNOWLEDGE_DIR: str
-    RAG_CHUNK_SIZE: int
-    RAG_CHUNK_OVERLAP: int
-    RAG_TOP_K: int
+    KNOWLEDGE_DIR: str = "./knowledge"
+    RAG_CHUNK_SIZE: int = 800
+    RAG_CHUNK_OVERLAP: int = 120
+    RAG_TOP_K: int = 4
 
     model_config = SettingsConfigDict(
         env_file=".env",

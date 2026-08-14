@@ -1,6 +1,5 @@
 """Vehicle catalog data access backed by the backend HTTP API.
 
-Implements CarRepositoryProtocol (structurally — no inheritance needed).
 Maps the backend response envelope {"success": ..., "data": ...} into
 pure domain entities so no other layer ever sees raw API payloads.
 """
@@ -14,11 +13,12 @@ from loguru import logger
 
 from core.domain.car import Car, CarColor, CarVariant
 from core.exceptions import InfrastructureError
+from core.interface.repository import ICarRepository
 
 _VEHICLES_PATH = "/api/v1/catalog/vehicles"
 
 
-class CarRepository:
+class CarRepository(ICarRepository):
     """Vehicle data source calling the backend catalog API via httpx."""
 
     def __init__(self, client: httpx.AsyncClient) -> None:

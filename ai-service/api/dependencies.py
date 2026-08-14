@@ -1,5 +1,5 @@
-"""Dependency wiring — the only place that knows both Protocols and
-their concrete implementations.
+"""Dependency wiring — the only place that knows both abstract contracts
+and their concrete implementations.
 
 Build everything once per application lifetime (embedding model load is
 slow), never per request.
@@ -11,10 +11,15 @@ import httpx
 
 from agent.supervisor import build_supervisor_agent
 from core.config import settings
-from infrastructure.llm.factory import build_chat_model
-from infrastructure.vector_store.factory import build_embeddings, build_vector_store
-from infrastructure.vector_store.qdrant_retriever import QdrantRetriever
+from infrastructure.llm.groq import build_chat_model
+from infrastructure.vector_store.qdrant import (
+    QdrantDocumentRepository,
+    build_embeddings,
+    build_vector_store,
+)
 from repository.car_repository import CarRepository
+from repository.message_repository import SqliteMessageRepository
+from services.message_service import MessageService
 from services.rag_service import RAGService
 
 
@@ -32,16 +37,23 @@ def build_car_repository(client: httpx.AsyncClient) -> CarRepository:
 
 
 def build_rag_service() -> RAGService:
-    """Build the RAG use case wired to the real Qdrant retriever."""
+    """Build the RAG use case wired to the real Qdrant document repository."""
     vector_store = build_vector_store(build_embeddings())
-    return RAGService(retriever=QdrantRetriever(vector_store))
+    return RAGService(document_repository=QdrantDocumentRepository(vector_store))
+
+
+async def build_message_service() -> MessageService:
+    """Build the conversation-history use case and create its table if missing."""
+    repository = SqliteMessageRepository(db_path=settings.CONVERSATION_DB_PATH)
+    await repository.init()
+    return MessageService(message_repository=repository)
 
 
 def build_supervisor(checkpointer: Any) -> Any:
     """Build the fully wired supervisor agent.
 
     Args:
-        checkpointer (Any): Open checkpointer from core.checkpointer.
+        checkpointer (Any): Open checkpointer from agent.checkpointer.
 
     Returns:
         Any: Compiled supervisor graph ready for ainvoke.

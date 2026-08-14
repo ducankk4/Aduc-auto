@@ -1,10 +1,3 @@
-"""LLM client factory — the single place where model wiring lives.
-
-Every graph/agent gets its chat model from here so provider, model name,
-and sampling settings stay centralized in Settings instead of being
-scattered across agent code.
-"""
-
 from langchain_groq import ChatGroq
 from loguru import logger
 

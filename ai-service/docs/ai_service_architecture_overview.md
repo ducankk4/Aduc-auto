@@ -34,7 +34,7 @@ Mỗi phase dưới đây là một lát cắt dọc qua đủ 4 layer/thư mụ
 
 **Thành phần chính:**
 - `core/`: config loader, logging, exception hierarchy chung
-- `core/checkpointer`: Postgres/SQLite saver cho LangGraph — **bắt buộc phải xong trước Phase 2** vì HITL cần persist state khi `interrupt()`
+- `agent/checkpointer`: SQLite saver cho LangGraph — **bắt buộc phải xong trước Phase 2** vì HITL cần persist state khi `interrupt()`. Nằm ở `agent/` chứ không phải `core/`: nó chỉ tồn tại vì LangGraph
 - `domain/`: entity dùng chung (Car, Customer, User...) — không phụ thuộc agent nào
 - `infrastructure/db`: kết nối DB, base repository pattern
 - `infrastructure/llm`: LLM client factory (model config tập trung một chỗ)
@@ -58,6 +58,22 @@ Mỗi phase dưới đây là một lát cắt dọc qua đủ 4 layer/thư mụ
 | Interface | Tool wrapper `rag_search` đăng ký cho supervisor, entry point gọi graph từ ngoài |
 
 **Ra khỏi phase khi:** supervisor có thể (a) trả lời câu hỏi general bằng RAG, (b) route được tới một subagent giả lập (stub) — chưa cần subagent thật, chỉ cần cơ chế `task tool` / delegation hoạt động.
+
+### Phase 1b (phát sinh) — Lịch sử hội thoại
+
+Không nằm trong lộ trình gốc, thêm vào sau khi Phase 1 xong. Chi tiết ở `phase-1b-conversation-summary.md`.
+
+| Layer | Nội dung |
+|---|---|
+| Domain | `Conversation` → `Session[]` (một cặp hỏi/đáp) → `UserMessage`/`AssistantMessage` |
+| Application | `MessageService` (nạp N session gần nhất, ghi session mới); `agent/history.py` map domain → message của LangChain |
+| Infrastructure | `SqliteMessageRepository` (aiosqlite), lưu cả `Conversation` thành một blob JSON |
+| Interface | `POST /chat` nhận `conversation_id`; `GET /conversation/{id}` đọc lại lịch sử |
+
+**Ranh giới với checkpointer:** checkpointer giữ *state thi hành* để resume HITL trong một lượt;
+lịch sử hội thoại là *read model nghiệp vụ* để nạp lại ngữ cảnh và phục vụ báo cáo ở Phase 4.
+`thread_id` gắn với **Session**, nên mỗi lượt là một thread mới và ngữ cảnh giữa các lượt **phải**
+nạp lại tường minh — checkpointer không làm việc đó.
 
 ---
 

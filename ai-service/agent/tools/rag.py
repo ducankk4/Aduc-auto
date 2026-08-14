@@ -30,12 +30,13 @@ def build_rag_search_tool(rag_service: RAGService) -> BaseTool:
         Args:
             query: Câu hỏi hoặc từ khóa tiếng Việt cần tra cứu.
         """
-        chunks = await rag_service.search_knowledge(query)
-        if not chunks:
+        results = await rag_service.search_knowledge(query)
+        if not results:
             return "Không tìm thấy thông tin liên quan trong cơ sở kiến thức."
         return "\n\n---\n\n".join(
-            f"[Nguồn: {chunk.source} | score={chunk.score:.3f}]\n{chunk.content}"
-            for chunk in chunks
+            f"[Nguồn: {result.chunk.metadata.title} | score={result.similarity_score:.3f}]\n"
+            f"{result.chunk.content}"
+            for result in results
         )
 
     return rag_search

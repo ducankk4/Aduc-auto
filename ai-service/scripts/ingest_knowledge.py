@@ -9,7 +9,7 @@ Run:  uv run python scripts/ingest_knowledge.py
 """
 
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 from langchain_core.documents import Document
 from langchain_qdrant import QdrantVectorStore
@@ -18,7 +18,7 @@ from loguru import logger
 
 from core.config import settings
 from core.logger import setup_logger
-from infrastructure.vector_store.factory import build_embeddings
+from infrastructure.vector_store.qdrant import build_embeddings
 
 
 def load_documents() -> List[Document]:
@@ -31,7 +31,11 @@ def load_documents() -> List[Document]:
     documents = [
         Document(
             page_content=path.read_text(encoding="utf-8"),
-            metadata={"source": path.name},
+            metadata={
+                "document_id": path.stem,
+                "title": path.stem.replace("-", " "),
+                "source_file": path.name,
+            },
         )
         for path in paths
     ]
@@ -49,6 +53,15 @@ def main() -> None:
         chunk_overlap=settings.RAG_CHUNK_OVERLAP,
     )
     chunks = splitter.split_documents(documents)
+
+    # Retriever reads chunk_index from metadata; the splitter only copies the
+    # parent document's metadata, so number the chunks per source file here.
+    index_per_file: Dict[str, int] = {}
+    for chunk in chunks:
+        source_file = chunk.metadata["source_file"]
+        chunk.metadata["chunk_index"] = index_per_file.get(source_file, 0)
+        index_per_file[source_file] = chunk.metadata["chunk_index"] + 1
+
     logger.info("Split into chunks [count={}]", len(chunks))
 
     QdrantVectorStore.from_documents(

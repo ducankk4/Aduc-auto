@@ -1,9 +1,3 @@
-"""Centralized Loguru configuration for the entire ai-service.
-
-Call `setup_logger()` once at startup (entry point / lifespan).
-All other modules simply use: from loguru import logger
-"""
-
 import logging
 import sys
 
