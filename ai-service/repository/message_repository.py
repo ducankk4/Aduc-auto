@@ -17,6 +17,7 @@ from core.domain.message import (
     Conversation,
     MessageRole,
     Session,
+    SessionStatus,
     UserMessage,
 )
 from core.exceptions import InfrastructureError
@@ -121,7 +122,7 @@ def _to_domain(data: Dict[str, Any]) -> Conversation:
 def _session_to_domain(data: Dict[str, Any]) -> Session:
     """Rebuild one Session from its stored JSON payload."""
     question = data["question"]
-    answer = data["answer"]
+    answer = data.get("answer")
     return Session(
         id=data["id"],
         created_at=datetime.fromisoformat(data["created_at"]),
@@ -130,10 +131,15 @@ def _session_to_domain(data: Dict[str, Any]) -> Session:
             created_at=datetime.fromisoformat(question["created_at"]),
             role=MessageRole(question["role"]),
         ),
-        answer=AssistantMessage(
+        answer=None
+        if answer is None
+        else AssistantMessage(
             content=answer["content"],
             created_at=datetime.fromisoformat(answer["created_at"]),
             response_time_seconds=answer["response_time_seconds"],
             role=MessageRole(answer["role"]),
         ),
+        # Rows written before Phase 2 have no status field: they all
+        # predate HITL, so they are completed by definition.
+        status=SessionStatus(data.get("status", SessionStatus.COMPLETED.value)),
     )

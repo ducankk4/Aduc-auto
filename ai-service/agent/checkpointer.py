@@ -1,16 +1,3 @@
-"""SQLite-backed LangGraph checkpointer for ai-service.
-
-Persisting graph state is what makes HITL possible: when a sensitive tool
-triggers `interrupt()`, the whole graph state is saved here so the run can
-be resumed later with `Command(resume=...)` on the same thread_id.
-
-Usage (entry point / lifespan):
-
-    async with open_checkpointer() as checkpointer:
-        graph = build_supervisor_graph(checkpointer=checkpointer)
-        ...
-"""
-
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 

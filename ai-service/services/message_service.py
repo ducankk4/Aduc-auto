@@ -1,10 +1,18 @@
+from dataclasses import replace
 from datetime import datetime, timezone
 from typing import List, Optional
 
 from loguru import logger
 
 from core.config import settings
-from core.domain.message import AssistantMessage, Conversation, Session, UserMessage
+from core.domain.message import (
+    AssistantMessage,
+    Conversation,
+    Session,
+    SessionStatus,
+    UserMessage,
+)
+from core.exceptions import NotFoundError
 from core.interface.repository import IMessageRepository
 
 
@@ -29,6 +37,7 @@ class MessageService:
         response_time_seconds: float,
         user_id: Optional[str] = None,
     ) -> None:
+        """Store one completed question/answer exchange."""
         now = datetime.now(timezone.utc)
         session = Session(
             id=session_id,
@@ -40,7 +49,72 @@ class MessageService:
                 response_time_seconds=response_time_seconds,
             ),
         )
+        await self._append(conversation_id, session, user_id)
 
+    async def append_pending_session(
+        self,
+        conversation_id: str,
+        session_id: str,
+        question: str,
+        user_id: Optional[str] = None,
+    ) -> None:
+        """Store an exchange interrupted by a sensitive tool, answer still unknown."""
+        now = datetime.now(timezone.utc)
+        session = Session(
+            id=session_id,
+            created_at=now,
+            question=UserMessage(content=question, created_at=now),
+            status=SessionStatus.PENDING_APPROVAL,
+        )
+        await self._append(conversation_id, session, user_id)
+
+    async def complete_session(
+        self,
+        conversation_id: str,
+        session_id: str,
+        answer: str,
+        response_time_seconds: float,
+    ) -> None:
+        """Fill in the answer of a pending session once its turn resumed.
+
+        Raises:
+            NotFoundError: If the conversation or the pending session is absent.
+        """
+        conversation = await self._message_repository.find_conversation(conversation_id)
+        if conversation is None:
+            raise NotFoundError(f"Không tìm thấy hội thoại: {conversation_id}")
+
+        now = datetime.now(timezone.utc)
+        sessions = list(conversation.sessions)
+        for index, session in enumerate(sessions):
+            if session.id == session_id:
+                sessions[index] = replace(
+                    session,
+                    answer=AssistantMessage(
+                        content=answer,
+                        created_at=now,
+                        response_time_seconds=response_time_seconds,
+                    ),
+                    status=SessionStatus.COMPLETED,
+                )
+                break
+        else:
+            raise NotFoundError(f"Không tìm thấy lượt hội thoại đang chờ: {session_id}")
+
+        await self._message_repository.update_conversation(
+            replace(conversation, updated_at=now, sessions=sessions)
+        )
+        logger.info(
+            "Session completed [conversation_id={}, session_id={}]",
+            conversation_id,
+            session_id,
+        )
+
+    async def _append(
+        self, conversation_id: str, session: Session, user_id: Optional[str]
+    ) -> None:
+        """Append one session, creating the conversation on first use."""
+        now = session.created_at
         conversation = await self._message_repository.find_conversation(conversation_id)
         if conversation is None:
             conversation = Conversation(
@@ -52,9 +126,8 @@ class MessageService:
             )
             await self._message_repository.create_conversation(conversation)
         else:
-            conversation = Conversation(
-                id=conversation.id,
-                created_at=conversation.created_at,
+            conversation = replace(
+                conversation,
                 updated_at=now,
                 user_id=user_id or conversation.user_id,
                 sessions=[*conversation.sessions, session],
@@ -62,8 +135,9 @@ class MessageService:
             await self._message_repository.update_conversation(conversation)
 
         logger.info(
-            "Session stored [conversation_id={}, session_id={}, total_sessions={}]",
+            "Session stored [conversation_id={}, session_id={}, status={}, total_sessions={}]",
             conversation_id,
-            session_id,
+            session.id,
+            session.status.value,
             len(conversation.sessions),
         )

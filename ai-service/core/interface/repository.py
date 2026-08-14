@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional, Tuple
+from uuid import UUID
 
+from core.domain.booking import TestDriveBooking
 from core.domain.car import Car
 from core.domain.message import Conversation
 from core.domain.rag import VectorSearchResult
@@ -17,6 +19,22 @@ class ICarRepository(ABC):
     @abstractmethod
     async def find_by_slug(self, slug: str) -> Optional[Car]:
         """Return the vehicle matching the given slug, or None if absent."""
+        ...
+
+
+class IBookingRepository(ABC):
+    """Contract any test-drive booking sink must satisfy."""
+
+    @abstractmethod
+    async def create(
+        self,
+        vehicle_id: UUID,
+        customer_name: str,
+        phone: str,
+        email: str,
+        showroom_pref: Optional[str] = None,
+    ) -> TestDriveBooking:
+        """Register a test-drive booking and return the stored record."""
         ...
 
 

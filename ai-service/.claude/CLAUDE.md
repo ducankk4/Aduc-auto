@@ -16,9 +16,9 @@ Lộ trình 6 phase mô tả ở [docs/ai_service_architecture_overview.md](../d
 - **Phase 1b (lịch sử hội thoại) — code xong, chưa nghiệm thu.** Phát sinh ngoài lộ trình.
   `Conversation` → `Session`, lưu SQLite, mỗi lượt chat một `thread_id` riêng nên history phải
   nạp lại tường minh. Xem `docs/phase-1b-conversation-summary.md`.
-- **Phase 2 (data-ops subagent + HITL) — đang tới.** `_DATA_OPS_STUB` trong `agent/supervisor.py`
-  là chỗ cần thay. `CarRepository` đã viết xong nhưng **chưa có luồng nào gọi** — Phase 2 là
-  người dùng đầu tiên của nó.
+- **Phase 2 (data-ops subagent + HITL) — code xong, luồng HTTP chưa nghiệm thu.** Subagent
+  data-ops thật (2 tool view + 1 tool sensitive sau cổng phê duyệt approve/edit/reject),
+  `POST /chat` trả `interrupted` + `POST /chat/resume`. Xem `docs/phase-2-summary.md`.
 
 **Đọc `docs/phase-N-summary.md` của phase gần nhất trước khi bắt tay vào việc** — quyết định đã
 chốt và bẫy đã biết nằm ở đó, đừng mở lại nếu không có lý do mạnh.

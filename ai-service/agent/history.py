@@ -24,6 +24,10 @@ def build_agent_messages(history: List[Session], question: str) -> List[BaseMess
     """
     messages: List[BaseMessage] = []
     for session in history:
+        # Sessions still pending approval (or abandoned there) have no
+        # answer; feeding half a turn to the LLM only confuses it.
+        if session.answer is None:
+            continue
         messages.append(HumanMessage(content=session.question.content))
         messages.append(AIMessage(content=session.answer.content))
     messages.append(HumanMessage(content=question))

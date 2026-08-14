@@ -37,14 +37,26 @@ class AssistantMessage:
     role: MessageRole = MessageRole.ASSISTANT
 
 
+class SessionStatus(str, Enum):
+    """Lifecycle of one exchange.
+
+    PENDING_APPROVAL means a sensitive tool interrupted the turn and no
+    answer exists yet; sessions abandoned mid-approval stay in this state.
+    """
+
+    COMPLETED = "completed"
+    PENDING_APPROVAL = "pending_approval"
+
+
 @dataclass(frozen=True)
 class Session:
     """One question/answer exchange. Its id is the LangGraph thread_id."""
 
     id: str
     question: UserMessage
-    answer: AssistantMessage
     created_at: datetime
+    answer: Optional[AssistantMessage] = None
+    status: SessionStatus = SessionStatus.COMPLETED
 
 
 @dataclass(frozen=True)

@@ -1,10 +1,3 @@
-"""Shared state schemas for every graph in ai-service.
-
-State only carries data that must survive a checkpoint. Never put
-non-serializable objects (clients, sessions, connections) in state —
-pass those through constructor injection or graph config instead.
-"""
-
 from typing import Annotated, List, TypedDict
 
 from langchain_core.messages import AnyMessage
