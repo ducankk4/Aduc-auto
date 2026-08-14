@@ -15,15 +15,6 @@ class MessageService:
         self._message_repository = message_repository
 
     async def get_recent_sessions(self, conversation_id: str) -> List[Session]:
-        """Return the most recent sessions of a conversation, oldest first.
-
-        Args:
-            conversation_id (str): Conversation identifier.
-
-        Returns:
-            List[Session]: Up to CONVERSATION_HISTORY_LIMIT sessions, in the
-                order they happened, ready to be replayed to the agent.
-        """
         conversation = await self._message_repository.find_conversation(conversation_id)
         if conversation is None:
             return []
@@ -38,18 +29,6 @@ class MessageService:
         response_time_seconds: float,
         user_id: Optional[str] = None,
     ) -> None:
-        """Append one question/answer exchange to a conversation.
-
-        Creates the conversation when this is its first session.
-
-        Args:
-            conversation_id (str): Conversation the session belongs to.
-            session_id (str): Identifier of this exchange (the thread_id).
-            question (str): What the user asked.
-            answer (str): What the agent replied.
-            response_time_seconds (float): How long the answer took.
-            user_id (Optional[str]): Who asked, when the caller knows.
-        """
         now = datetime.now(timezone.utc)
         session = Session(
             id=session_id,

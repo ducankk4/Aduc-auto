@@ -17,27 +17,11 @@ from core.interface.repository import IDocumentRepository
 
 
 def build_embeddings() -> HuggingFaceEmbeddings:
-    """Build the local HuggingFace embedding model configured in Settings.
-
-    Returns:
-        HuggingFaceEmbeddings: Ready-to-use embedding function.
-    """
     logger.info("Loading embedding model [model={}]", settings.EMBEDDING_MODEL)
     return HuggingFaceEmbeddings(model_name=settings.EMBEDDING_MODEL)
 
 
 def build_vector_store(embeddings: HuggingFaceEmbeddings) -> QdrantVectorStore:
-    """Connect to the existing Qdrant collection configured in Settings.
-
-    Fails fast if the collection does not exist yet — run
-    `uv run python scripts/ingest_knowledge.py` first.
-
-    Args:
-        embeddings (HuggingFaceEmbeddings): Embedding function, from build_embeddings().
-
-    Returns:
-        QdrantVectorStore: Vector store bound to the knowledge collection.
-    """
     return QdrantVectorStore.from_existing_collection(
         embedding=embeddings,
         collection_name=settings.QDRANT_COLLECTION,
@@ -52,18 +36,6 @@ class QdrantDocumentRepository(IDocumentRepository):
         self._vector_store = vector_store
 
     async def vector_search(self, query: str, top_k: int) -> List[VectorSearchResult]:
-        """Return the top_k chunks most similar to the query, best score first.
-
-        Args:
-            query (str): Natural-language search query.
-            top_k (int): Maximum number of chunks to return.
-
-        Returns:
-            List[VectorSearchResult]: Matching chunks with their score.
-
-        Raises:
-            InfrastructureError: If the Qdrant call fails.
-        """
         try:
             hits = await self._vector_store.asimilarity_search_with_score(query, k=top_k)
         except Exception as exc:

@@ -25,18 +25,8 @@ class CarRepository(ICarRepository):
         self._client = client
 
     async def find_many(self, page: int = 1, limit: int = 20) -> Tuple[List[Car], int]:
-        """Return a page of active vehicles and the total vehicle count.
+        """Return a page of active vehicles and the total vehicle count."""
 
-        Args:
-            page (int): 1-based page number.
-            limit (int): Maximum records per page.
-
-        Returns:
-            Tuple[List[Car], int]: Vehicles on this page and total count.
-
-        Raises:
-            InfrastructureError: If the backend API call fails.
-        """
         payload = await self._get(_VEHICLES_PATH, params={"page": page, "limit": limit})
         cars = [_to_domain(item) for item in payload["data"]]
         total = payload.get("meta", {}).get("total", len(cars))
@@ -44,19 +34,6 @@ class CarRepository(ICarRepository):
         return cars, total
 
     async def find_by_slug(self, slug: str) -> Optional[Car]:
-        """Return the vehicle matching the given slug, or None if absent.
-
-        Args:
-            slug (str): Unique vehicle URL slug.
-
-        Returns:
-            Optional[Car]: The matching vehicle, or None when the backend
-                answers 404.
-
-        Raises:
-            InfrastructureError: If the backend API call fails for any
-                reason other than a 404.
-        """
         try:
             payload = await self._get(f"{_VEHICLES_PATH}/{slug}")
         except _NotFound:
