@@ -6,8 +6,6 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class ChatRequest(BaseModel):
-    """Schema for one chat turn sent by the client."""
-
     message: str = Field(..., min_length=1, max_length=4000)
     conversation_id: Optional[str] = Field(
         None,
@@ -26,12 +24,6 @@ class ApprovalRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    """Schema for the outcome of one chat turn.
-
-    Either a finished reply, or interrupted=True with the tool calls that
-    need approval — resume the turn via POST /chat/resume.
-    """
-
     conversation_id: str
     session_id: str
     interrupted: bool = False
@@ -40,8 +32,6 @@ class ChatResponse(BaseModel):
 
 
 class ResumeDecision(BaseModel):
-    """One human decision for a pending approval request."""
-
     type: Literal["approve", "edit", "reject"]
     tool: Optional[str] = Field(None, description="Tên tool — bắt buộc khi type là edit.")
     args: Optional[Dict[str, Any]] = Field(

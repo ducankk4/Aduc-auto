@@ -22,19 +22,7 @@ def build_supervisor_agent(
     subagents: List[Dict[str, Any]],
     checkpointer: Any,
 ) -> Any:
-    """Build the supervisor deep agent with RAG tool and subagents.
 
-    Args:
-        model (BaseChatModel): Chat model from infrastructure/llm factory.
-        rag_service (RAGService): Retrieval use case for the rag_search tool.
-        subagents (List[Dict[str, Any]]): SubAgent specs (e.g. data-ops)
-            built by agent/subagent builders and wired in api/.
-        checkpointer (Any): LangGraph checkpointer (SQLite saver) so the
-            graph state persists across interrupts.
-
-    Returns:
-        Any: Compiled agent graph, invokable with {"messages": [...]}.
-    """
     logger.info("Building supervisor agent [subagents={}]", [s["name"] for s in subagents])
     return create_deep_agent(
         model=model,
