@@ -28,22 +28,8 @@ class BookingService:
         email: str,
         showroom_pref: Optional[str] = None,
     ) -> TestDriveBooking:
-        """Register a test drive for the vehicle identified by its slug.
-
-        Args:
-            car_slug (str): URL-friendly identifier of the vehicle to test drive.
-            customer_name (str): Customer's full name.
-            phone (str): Customer's contact phone number.
-            email (str): Customer's contact email.
-            showroom_pref (Optional[str]): Preferred showroom, if any.
-
-        Returns:
-            TestDriveBooking: The booking as stored by the backend.
-
-        Raises:
-            NotFoundError: If no vehicle matches the given slug.
-            InfrastructureError: If the backend call fails.
-        """
+        """Register a test drive for the vehicle identified by its slug."""
+        
         car = await self._car_repository.find_by_slug(car_slug)
         if car is None:
             raise NotFoundError(f"Không tìm thấy xe: {car_slug}")

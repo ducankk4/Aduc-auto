@@ -121,25 +121,23 @@ def _to_domain(data: Dict[str, Any]) -> Conversation:
 
 def _session_to_domain(data: Dict[str, Any]) -> Session:
     """Rebuild one Session from its stored JSON payload."""
-    question = data["question"]
-    answer = data.get("answer")
+    question_raw = data["question"]
+    answer_raw = data.get("answer")
     return Session(
         id=data["id"],
         created_at=datetime.fromisoformat(data["created_at"]),
         question=UserMessage(
-            content=question["content"],
-            created_at=datetime.fromisoformat(question["created_at"]),
-            role=MessageRole(question["role"]),
+            content=question_raw["content"],
+            created_at=datetime.fromisoformat(question_raw["created_at"]),
+            role=MessageRole(question_raw["role"]),
         ),
-        answer=None
-        if answer is None
-        else AssistantMessage(
-            content=answer["content"],
-            created_at=datetime.fromisoformat(answer["created_at"]),
-            response_time_seconds=answer["response_time_seconds"],
-            role=MessageRole(answer["role"]),
-        ),
+        answer=AssistantMessage(
+            content=answer_raw["content"],
+            created_at=datetime.fromisoformat(answer_raw["created_at"]),
+            response_time_seconds=answer_raw["response_time_seconds"],
+            role=MessageRole(answer_raw["role"]),
+        ) if answer_raw is not None else None
         # Rows written before Phase 2 have no status field: they all
         # predate HITL, so they are completed by definition.
-        status=SessionStatus(data.get("status", SessionStatus.COMPLETED.value)),
+        ,status=SessionStatus(data.get("status", SessionStatus.COMPLETED.value)),
     )

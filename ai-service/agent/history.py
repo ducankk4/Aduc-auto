@@ -13,15 +13,8 @@ from core.domain.message import Session
 
 
 def build_agent_messages(history: List[Session], question: str) -> List[BaseMessage]:
-    """Build the message list for one agent call: past turns then the new question.
-
-    Args:
-        history (List[Session]): Past exchanges, oldest first.
-        question (str): What the user is asking now.
-
-    Returns:
-        List[BaseMessage]: Alternating human/AI messages, new question last.
-    """
+    """Build the message list for one agent call: past turns then the new question."""
+    
     messages: List[BaseMessage] = []
     for session in history:
         # Sessions still pending approval (or abandoned there) have no

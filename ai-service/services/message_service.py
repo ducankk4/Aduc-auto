@@ -48,6 +48,7 @@ class MessageService:
                 created_at=now,
                 response_time_seconds=response_time_seconds,
             ),
+            status=SessionStatus.COMPLETED,
         )
         await self._append(conversation_id, session, user_id)
 

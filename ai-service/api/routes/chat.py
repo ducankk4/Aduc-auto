@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from agent.history import build_agent_messages
-from agent.hitl import build_decision, build_resume_command, pending_approvals
+from agent.human_in_the_loop import build_decision, build_resume_command, pending_approvals
 from api.response import success
 from api.schemas.chat import ApprovalRequest, ChatRequest, ChatResponse, ResumeRequest
 from core.exceptions import NotFoundError

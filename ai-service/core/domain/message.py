@@ -12,16 +12,12 @@ from typing import List, Optional
 
 
 class MessageRole(str, Enum):
-    """Who produced a message."""
-
     USER = "user"
     ASSISTANT = "assistant"
 
 
 @dataclass(frozen=True)
 class UserMessage:
-    """A question sent by the user."""
-
     content: str
     created_at: datetime
     role: MessageRole = MessageRole.USER
@@ -29,8 +25,6 @@ class UserMessage:
 
 @dataclass(frozen=True)
 class AssistantMessage:
-    """An answer produced by the agent, with how long it took to generate."""
-
     content: str
     created_at: datetime
     response_time_seconds: float
